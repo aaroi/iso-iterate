@@ -75,5 +75,11 @@
     "claude",
     "iteration"
   ],
-  "sideEffects": false
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aaroi/iso-iterate.git"
+  },
+  "homepage": "https://github.com/aaroi/iso-iterate#readme",
+  "bugs": "https://github.com/aaroi/iso-iterate/issues"
 }
