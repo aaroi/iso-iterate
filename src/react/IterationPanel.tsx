@@ -145,8 +145,9 @@ export function IterationPanel({
       createdAt: new Date().toISOString(),
     };
     setNotes((prev) => (prev ? [...prev, entry] : [entry]));
+    const viewport = { w: window.innerWidth, h: window.innerHeight };
     void store
-      .saveNote(route, value, element, null, getPayload?.())
+      .saveNote(route, value, element, null, getPayload?.(), viewport)
       .then((id) => {
         setNotes((prev) =>
           prev?.map((n) => (n.id === tempId ? { ...n, id } : n)) ?? prev,
@@ -319,18 +320,15 @@ export function IterationPanel({
 
       {open && !picking && (
         <div data-iso-iterate role="dialog" aria-label="Iteration notes" className="iso-iter-panel">
-          {notes !== null && notes.length > 0 && (
+          {doneCount > 0 && (
             <div className="iso-iter-head">
-              <span>notes · {openCount}</span>
-              {doneCount > 0 && (
-                <button
-                  type="button"
-                  data-iso-iterate
-                  onClick={() => setShowDone((v) => !v)}
-                >
-                  {showDone ? 'hide done' : `show done · ${doneCount}`}
-                </button>
-              )}
+              <button
+                type="button"
+                data-iso-iterate
+                onClick={() => setShowDone((v) => !v)}
+              >
+                {showDone ? 'hide done' : `show done · ${doneCount}`}
+              </button>
             </div>
           )}
 
@@ -339,33 +337,42 @@ export function IterationPanel({
               {visibleNotes.map((note) => (
                 <li
                   key={note.id}
-                  className={note.done ? 'iso-iter-note iso-iter-note-done' : 'iso-iter-note'}
+                  className={[
+                    'iso-iter-note',
+                    note.done ? 'iso-iter-note-done' : '',
+                    editingId === note.id ? 'iso-iter-note-editing' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                 >
-                  <p>{note.feedback}</p>
-                  <div className="iso-iter-meta">
-                    <span>{note.done ? '✓ done' : timeLabel(note.createdAt)}</span>
-                    {note.element && (
-                      <span className="iso-iter-el" title={note.element.selector}>
-                        ↳ {note.element.tag}
-                        {note.element.text ? ` · ${note.element.text}` : ''}
-                      </span>
-                    )}
-                    <span className="iso-iter-actions">
-                      {!note.done && (
-                        <button type="button" data-iso-iterate onClick={() => beginEdit(note)}>
-                          edit
-                        </button>
+                  <button
+                    type="button"
+                    data-iso-iterate
+                    className="iso-iter-note-hit"
+                    disabled={note.done}
+                    title={note.done ? undefined : 'Click to edit'}
+                    onClick={() => beginEdit(note)}
+                  >
+                    <p>{note.feedback}</p>
+                    <div className="iso-iter-meta">
+                      <span>{note.done ? '✓ done' : timeLabel(note.createdAt)}</span>
+                      {note.element && (
+                        <span className="iso-iter-el" title={note.element.selector}>
+                          ↳ {note.element.tag}
+                          {note.element.text ? ` · ${note.element.text}` : ''}
+                        </span>
                       )}
-                      <button
-                        type="button"
-                        data-iso-iterate
-                        aria-label="Delete note"
-                        onClick={() => void removeNote(note.id)}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  </div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    data-iso-iterate
+                    aria-label="Delete note"
+                    className="iso-iter-x"
+                    onClick={() => void removeNote(note.id)}
+                  >
+                    ×
+                  </button>
                 </li>
               ))}
             </ul>
@@ -427,22 +434,22 @@ export function IterationPanel({
                   setPicking(true);
                 }}
               >
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <title>Pin an element</title>
                   <circle cx="12" cy="12" r="7" />
                   <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
                 </svg>
               </button>
-              <span className="iso-iter-key">↵ send · ⇧↵ newline</span>
               <button
                 type="button"
                 data-iso-iterate
                 aria-label={editingId ? 'Save edit' : 'Send note'}
+                title="Send — Enter"
                 disabled={text.trim() === ''}
                 className="iso-iter-send"
                 onClick={send}
               >
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <title>Send</title>
                   <path d="M12 19V5M5 12l7-7 7 7" />
                 </svg>
@@ -468,9 +475,10 @@ export function IterationPanel({
         aria-label={openCount > 0 ? `Iteration — ${openCount} open notes` : 'Iteration'}
         className="iso-iter-fab"
       >
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <title>Iteration</title>
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+          <path d="M21 3v5h-5" />
         </svg>
         {openCount > 0 && <span className="iso-iter-badge">{openCount}</span>}
       </button>

@@ -18,6 +18,10 @@ export interface StoredNote {
   done: boolean;
   doneAt: string | null;
   createdAt: string;
+  /** The window size the note was written at. Feedback about layout only
+   *  means something at the breakpoint it was seen on, so the agent reads
+   *  this next to the selector. Captured on create, kept on edit. */
+  viewport?: { w: number; h: number };
   /** Host-specific context, stored and returned verbatim and never
    *  interpreted here. A host with state that gives a note its meaning — the
    *  knob settings a design note was written against, a feature-flag set, the
@@ -84,6 +88,7 @@ function toItem(n: StoredNote) {
     element: IterationElement | null;
     done: boolean;
     createdAt: string;
+    viewport?: { w: number; h: number };
     payload?: unknown;
   } = {
     id: n.id,
@@ -95,6 +100,7 @@ function toItem(n: StoredNote) {
   };
   // Absent stays absent: a host that never sends a payload should not start
   // seeing a null one appear in its notes.
+  if (n.viewport !== undefined) item.viewport = n.viewport;
   if (n.payload !== undefined) item.payload = n.payload;
   return item;
 }
@@ -177,8 +183,9 @@ export function notesResponse(file: string, req: NotesRequest): NotesResponse {
       feedback?: unknown;
       element?: unknown;
       payload?: unknown;
+      viewport?: unknown;
     };
-    const { id, route, feedback, element, payload } = body;
+    const { id, route, feedback, element, payload, viewport } = body;
     if (typeof route !== 'string' || route === '') {
       return json(400, { error: 'route is required' });
     }
@@ -192,6 +199,7 @@ export function notesResponse(file: string, req: NotesRequest): NotesResponse {
         error: `payload exceeds ${PAYLOAD_MAX} bytes or is not serializable`,
       });
     }
+    const cleanViewport = viewportOf(viewport);
     let cleanElement: IterationElement | null = null;
     if (element && typeof element === 'object' && !Array.isArray(element)) {
       cleanElement = {
@@ -225,6 +233,7 @@ export function notesResponse(file: string, req: NotesRequest): NotesResponse {
       done: false,
       doneAt: null,
       createdAt: new Date().toISOString(),
+      ...(cleanViewport ? { viewport: cleanViewport } : {}),
       ...(payload !== undefined ? { payload } : {}),
     });
     writeNotes(file, notes);
@@ -249,6 +258,16 @@ export function handleNotes(file: string, req: IterationRequest) {
 
 function cap(v: string, max: number): string {
   return v.slice(0, max);
+}
+
+/** A sane `{ w, h }` from an untrusted viewport value, else null. */
+function viewportOf(v: unknown): { w: number; h: number } | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const w = Math.round(Number((v as { w?: unknown }).w));
+  const h = Math.round(Number((v as { h?: unknown }).h));
+  if (!Number.isFinite(w) || !Number.isFinite(h)) return null;
+  if (w <= 0 || h <= 0 || w > 100_000 || h > 100_000) return null;
+  return { w, h };
 }
 
 /** Whether an opaque payload is serializable and inside {@link PAYLOAD_MAX}. */

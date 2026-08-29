@@ -124,8 +124,9 @@ for (const n of rows) {
     console.log(`\n## ${n.route}`);
   }
   const when = n.createdAt.slice(0, 16).replace('T', ' ');
+  const at = n.viewport ? ` · ${n.viewport.w}×${n.viewport.h}` : '';
   const done = n.done ? ' ✓done' : '';
-  console.log(`- [${n.id.slice(0, 8)}] (${when})${done}`);
+  console.log(`- [${n.id.slice(0, 8)}] (${when}${at})${done}`);
   if (n.element) {
     const label = n.element.text ? `"${n.element.text}"` : '(no text)';
     console.log(`  ↳ <${n.element.tag}> ${label} — ${n.element.selector}`);

@@ -43,7 +43,9 @@ An element-scoped note prints the pin target:
 
 That path is the debugging breadcrumb: find that node in the current page's
 DOM, then the component/file that renders it. Route is the URL the note was
-written on.
+written on. The timestamp line carries the reviewer's window size
+(`(2026-08-29 14:00 · 900×620)`) — layout feedback only means something at
+the breakpoint it was seen on, so reproduce at that width.
 
 ## Conventions
 

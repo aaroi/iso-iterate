@@ -75,7 +75,14 @@ export function mountIteration(opts: MountIterationOptions): () => void {
 
   return () => {
     for (const off of listeners) off();
-    root.unmount();
-    host.remove();
+    // Deferred, not synchronous: a React host calls this from an effect
+    // cleanup, and unmounting our root while the host's render is in flight
+    // is a race React 19 rejects ("Attempted to synchronously unmount a root
+    // while React was already rendering"). One macrotask later the host's
+    // commit is done; nothing observable changes for a vanilla host.
+    setTimeout(() => {
+      root.unmount();
+      host.remove();
+    }, 0);
   };
 }

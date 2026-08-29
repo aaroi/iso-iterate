@@ -108,8 +108,9 @@ export const PANEL_CSS = `
   font-family: var(--iso-mono);
   font-size: 10px;
   line-height: 1;
-  background: var(--iso-fg);
-  color: #131317;
+  background: var(--iso-bg);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--iso-muted);
 }
 
 /* ── The panel ──────────────────────────────────────────────────────────── */
@@ -128,8 +129,8 @@ export const PANEL_CSS = `
 .iso-iter-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px 8px;
+  justify-content: flex-end;
+  padding: 10px 14px 2px;
   font-family: var(--iso-mono);
   font-size: 10.5px;
   letter-spacing: 0.04em;
@@ -146,23 +147,45 @@ export const PANEL_CSS = `
 }
 
 /* Chat order: oldest up top, newest right above the composer. The list
-   scrolls internally, so sending never moves the composer under the cursor. */
+   scrolls internally, so sending never moves the composer under the cursor.
+   A note is one hit target — click anywhere on it to edit; delete floats in
+   on hover. */
 .iso-iter-list {
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 6px;
+  padding: 8px;
+}
+.iso-iter-head + .iso-iter-list {
+  padding-top: 4px;
 }
 .iso-iter-note {
-  padding: 7px 8px 8px;
-  border-radius: 10px;
+  position: relative;
 }
-.iso-iter-note:hover {
-  background: rgba(255, 255, 255, 0.035);
+.iso-iter-note + .iso-iter-note {
+  margin-top: 2px;
+}
+.iso-iter-note-hit {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: background 100ms ease;
+}
+.iso-iter-note-hit:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.045);
+}
+.iso-iter-note-hit:disabled {
+  cursor: default;
+}
+.iso-iter-note-editing .iso-iter-note-hit {
+  background: rgba(255, 255, 255, 0.06);
 }
 .iso-iter-note p {
   font-size: 13px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  padding-right: 14px; /* room for the floating delete */
 }
 .iso-iter-note-done p {
   color: var(--iso-faint);
@@ -183,23 +206,25 @@ export const PANEL_CSS = `
   white-space: nowrap;
   min-width: 0;
 }
-.iso-iter-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 10px;
-  flex: none;
+.iso-iter-x {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--iso-faint);
   opacity: 0;
-  transition: opacity 100ms ease;
+  transition: opacity 100ms ease, color 100ms ease;
 }
-.iso-iter-note:hover .iso-iter-actions {
+.iso-iter-note:hover .iso-iter-x {
   opacity: 1;
 }
-.iso-iter-actions button {
-  font-family: var(--iso-mono);
-  font-size: 10px;
-  color: var(--iso-muted);
-}
-.iso-iter-actions button:hover {
+.iso-iter-x:hover {
   color: var(--iso-fg);
 }
 
@@ -296,13 +321,10 @@ export const PANEL_CSS = `
   color: var(--iso-fg);
   background: rgba(255, 255, 255, 0.08);
 }
-.iso-iter-key {
+/* .iso-iter-toolbar prefix so the auto margin outranks the reset's
+   margin: 0 on .iso-iter-root button. */
+.iso-iter-toolbar .iso-iter-send {
   margin-left: auto;
-  font-family: var(--iso-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.03em;
-  color: var(--iso-faint);
-  user-select: none;
 }
 .iso-iter-send {
   display: grid;

@@ -28,6 +28,9 @@ export interface IterationNote {
   done: boolean;
   doneAt?: string | null;
   createdAt: string;
+  /** The window size the note was written at — layout feedback only means
+   *  something at the breakpoint it was seen on. */
+  viewport?: { w: number; h: number };
   /** Host-specific context the store round-trips without interpreting — see
    *  `StoredNote.payload`. */
   payload?: unknown;
@@ -198,6 +201,7 @@ export function createIterationStore(cfg: IterationStoreConfig = {}) {
           feedback: item.feedback,
           element: item.element ?? null,
           ...(item.payload !== undefined ? { payload: item.payload } : {}),
+          ...(item.viewport ? { viewport: item.viewport } : {}),
         }),
       });
       if (!res.ok) return; // keep backlog, retry next time
@@ -236,6 +240,7 @@ export function createIterationStore(cfg: IterationStoreConfig = {}) {
     element: IterationElement | null,
     id: string | null,
     payload?: unknown,
+    viewport?: { w: number; h: number },
   ): string {
     const all = localAll();
     let savedId: string;
@@ -253,6 +258,7 @@ export function createIterationStore(cfg: IterationStoreConfig = {}) {
         element,
         done: false,
         createdAt: new Date().toISOString(),
+        ...(viewport ? { viewport } : {}),
         ...(payload !== undefined ? { payload } : {}),
       });
     }
@@ -267,8 +273,10 @@ export function createIterationStore(cfg: IterationStoreConfig = {}) {
     id: string | null,
     /** Opaque host context, attached only when the caller sends it. */
     payload?: unknown,
+    /** Window size at write time; attached on create only. */
+    viewport?: { w: number; h: number },
   ): Promise<string> {
-    if (!endpoint) return saveLocal(route, feedback, element, id, payload);
+    if (!endpoint) return saveLocal(route, feedback, element, id, payload, viewport);
     try {
       const res = await fetch(endpoint, {
         method: "POST",
@@ -279,6 +287,7 @@ export function createIterationStore(cfg: IterationStoreConfig = {}) {
           feedback,
           element,
           ...(payload !== undefined ? { payload } : {}),
+          ...(viewport ? { viewport } : {}),
         }),
       });
       if (!res.ok) throw new Error(`Saving iteration note failed (${res.status})`);
@@ -286,7 +295,7 @@ export function createIterationStore(cfg: IterationStoreConfig = {}) {
     } catch {
       // Dev server blipped: never lose the note — stash in localStorage. The
       // next `listNotes` flushes the backlog once the endpoint is reachable.
-      return saveLocal(route, feedback, element, id, payload);
+      return saveLocal(route, feedback, element, id, payload, viewport);
     }
   }
 

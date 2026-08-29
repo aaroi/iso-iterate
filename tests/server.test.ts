@@ -178,3 +178,47 @@ describe('the opaque payload', () => {
     expect(readNotes(file)).toHaveLength(0);
   });
 });
+
+describe('the viewport', () => {
+  function create(file: string, body: Record<string, unknown>) {
+    return notesResponse(file, { method: 'POST', url: '/api/notes', body });
+  }
+
+  it('rides on a note and comes back on GET', () => {
+    const file = tempFile();
+    create(file, {
+      route: '/x',
+      feedback: 'nav wraps at this width',
+      element: null,
+      viewport: { w: 900, h: 620 },
+    });
+    expect(readNotes(file)[0].viewport).toEqual({ w: 900, h: 620 });
+    const rows = notesResponse(file, { method: 'GET', url: '/api/notes?route=/x' })
+      .body as Array<{ viewport?: { w: number; h: number } }>;
+    expect(rows[0].viewport).toEqual({ w: 900, h: 620 });
+  });
+
+  it('survives an edit and stays absent when never sent', () => {
+    const file = tempFile();
+    const id = (create(file, {
+      route: '/x',
+      feedback: 'v1',
+      element: null,
+      viewport: { w: 375, h: 812 },
+    }).body as { id: string }).id;
+    create(file, { id, route: '/x', feedback: 'v2', element: null });
+    expect(readNotes(file)[0].viewport).toEqual({ w: 375, h: 812 });
+
+    create(file, { route: '/y', feedback: 'plain', element: null });
+    const plain = readNotes(file).find((n) => n.route === '/y');
+    expect(plain && 'viewport' in plain).toBe(false);
+  });
+
+  it('drops garbage instead of storing it', () => {
+    const file = tempFile();
+    for (const viewport of [{ w: -1, h: 500 }, { w: 'x', h: 2 }, [1, 2], 'wide']) {
+      create(file, { route: '/x', feedback: 'n', element: null, viewport });
+    }
+    expect(readNotes(file).every((n) => !('viewport' in n))).toBe(true);
+  });
+});
