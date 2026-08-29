@@ -1,9 +1,10 @@
 # iso-iterate
 
-A dev-only **internal feedback loop** for coding agents. A one-line Vite
+A dev-only **internal feedback loop** for coding agents. A one-line
 integration drops an **Iteration** control into any web app: reviewers write
-page-wide or element-scoped notes by clicking the actual UI, notes autosave to
-a local gitignored file, and the coding agent reads them and marks them done.
+notes like chat messages — optionally pinned to a real UI element by clicking
+it — into a local gitignored file, and the coding agent reads them and marks
+them done.
 No database, no separate server to run, no permanent changes to the host repo's
 source.
 
@@ -11,7 +12,7 @@ source.
 
 | Piece | What it is | Where it lives |
 |---|---|---|
-| `IterationPanel` | React control (fixed bottom-right): Overall / Element notes, autosave, edit/delete, done toggle. Self-contained dark styles. | `iso-iterate/react` |
+| `IterationPanel` | React control (icon, fixed bottom-right): chat-style notes — Enter sends, optional pinned element, edit/delete, done toggle. Self-contained dark styles. | `iso-iterate/react` |
 | Vite plugin | Serves `/api/iteration/notes` from a local file and injects the panel (no host mount line). | `iso-iterate/vite` |
 | Server | The transport-free half: the file store plus `notesResponse(file, req)`, which returns `{ status, headers, body }` for any runtime to render. Imports no React and no Vite. | `iso-iterate/server` |
 | Standalone server | `iso-iterate serve` — owns the notes file, serves the endpoint, and hands out the panel as one self-contained script. No build integration in the host. | `iso-iterate/serve` |
@@ -121,7 +122,7 @@ await fetch(NOTES_ENDPOINT, {
 });
 ```
 
-Omitting `payload` on a later autosave leaves the stored one alone, a host that
+Omitting `payload` on a later save leaves the stored one alone, a host that
 never sends one never sees the field, and the CLI prints a flat map as a
 compact `key=value` breadcrumb under the note. Serialized payloads are capped
 at 64 KB; over that (or unserializable) the POST is rejected rather than

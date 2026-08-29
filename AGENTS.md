@@ -6,10 +6,10 @@ agent reads them and marks them addressed.
 
 ## The loop
 
-1. The reviewer opens the **Iteration** control (bottom-right of the app) and
-   writes notes — either page-scoped (**Overall**) or attached to a specific
-   element (**Element** mode: hover to highlight, click to pin). Notes
-   autosave ~1.2s after typing.
+1. The reviewer opens the **Iteration** control (the icon bottom-right of the
+   app) and writes notes like chat messages — Enter sends, and a note
+   optionally carries a pinned element (the crosshair in the composer: hover
+   to highlight, click to pin).
 2. Notes persist to a local gitignored JSON file (default
    `.iteration-feedback.json` in the working dir), served by the Vite plugin
    (`/api/iteration/notes`).
