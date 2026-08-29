@@ -4,14 +4,14 @@ Click the thing you want changed instead of describing it.
 
 iso-iterate is a feedback loop between a person looking at a running web app
 and the coding agent building it. A small panel sits bottom right of your dev
-build. You write notes in it — press the crosshair and click any element to
-pin a note to it — and each note lands in a JSON file in your repo with the
-route, a CSS selector, and your window size. The agent reads that file with
-one command, does the work, and marks each note done. Done notes disappear
-from your panel, so the queue drains as the agent works.
+build. You write notes in it, and when a note is about a specific element you
+press the crosshair and click that element. Each note lands in a JSON file in
+your repo with the route, a CSS selector, and your window size. The agent
+reads that file with one command, does the work, and marks each note done.
+Done notes disappear from your panel, so the queue drains as the agent works.
 
 Dev-only by design: nothing renders in a production build, and there is no
-database and no hosted service — just a gitignored file.
+database and no hosted service, just a gitignored file.
 
 ## Who it's for
 
@@ -20,31 +20,31 @@ database and no hosted service — just a gitignored file.
 - A designer or PM reviewing a dev build who would rather click the button
   than file a ticket about it.
 - Agents themselves: if you are an agent reading this, `npx iso-iterate`
-  lists open notes — treat each one as a task, reproduce at the viewport
-  printed next to its timestamp, and `npx iso-iterate --done <id>` when
+  lists open notes. Treat each one as a task, reproduce at the viewport
+  printed next to its timestamp, and run `npx iso-iterate --done <id>` when
   fixed.
 
 ## Why not the agent's built-in browser?
 
-Claude Code and Codex can open your app themselves — screenshot it, click
+Claude Code and Codex can open your app themselves: screenshot it, click
 around, verify a fix. That covers the agent looking at the app. iso-iterate
-covers the other direction: you looking at the app and telling the agent what
+covers the other direction, you looking at the app and telling the agent what
 to change.
 
-- You review in your own browser — your login, your extensions, your real
-  window sizes, on your own time. Notes queue up in the file; the agent works
-  through them now or next session.
+- You review in your own browser, with your login, your extensions, and your
+  real window sizes, on your own time. Notes queue up in the file; the agent
+  works through them now or next session.
 - A click hands the agent a selector, a route, and a viewport. A chat message
   hands it "the second button in the third card" and a guess.
 - Feedback survives the conversation. Ten notes written tonight are still
   there for whichever agent, model, or tool picks them up tomorrow.
 
-The two compose: you pin the note, the agent fixes it and uses its own
-browser to verify, then marks it done.
+The two compose. You pin the note; the agent fixes it, verifies in its own
+browser, and marks it done.
 
 ## Quick start
 
-### Any app — one script tag
+### Any app: one script tag
 
 ```bash
 npx iso-iterate serve
@@ -56,13 +56,13 @@ Run it inside the repo you're reviewing, then add one line to your dev page:
 <script src="http://127.0.0.1:4123/iso-iterate.js" defer></script>
 ```
 
-That's the whole integration — React ships inside the script, so the host
-needs no bundler, no React, no build step. `http://127.0.0.1:4123` serves
+React ships inside the script, so the host needs no bundler, no React
+install, and no build step. `http://127.0.0.1:4123` serves
 this tag with a copy button and a bookmarklet for pages you can't edit.
 Only loopback origins can reach the server, so a public page you happen to
 visit cannot write into your repo.
 
-### Vite — two lines, no HTML edit
+### Vite: two lines, no HTML edit
 
 ```bash
 npm install -D iso-iterate
@@ -82,13 +82,13 @@ Remove the two lines and the loop is gone; nothing else changed.
 It works like a chat with the agent:
 
 - Type, press **Enter**. The field clears instantly and keeps focus.
-- The **crosshair** pins an element — hover highlights, click attaches.
-- **Click a note** to edit it; delete appears on hover; long notes truncate
-  to one line (hover for the full text).
+- The crosshair pins an element. Hover highlights, click attaches.
+- Click a note to edit it; delete appears on hover; long notes truncate to
+  one line (hover for the full text).
 - Unsent text survives closing the panel.
 
-The panel renders in a shadow root — your CSS can't restyle it, its CSS
-can't touch your page — and it samples the page behind it to match, light or
+The panel renders in a shadow root, so your CSS can't restyle it and its CSS
+can't touch your page. It samples the page behind it and matches it, light or
 dark, with no configuration.
 
 ## The agent side
@@ -109,7 +109,7 @@ npx iso-iterate --days 30     # widen the window
   Default label should be Get started, with cursor-pointer.
 ```
 
-`900×620` is the reviewer's window size — layout feedback only means
+`900×620` is the reviewer's window size; layout feedback only means
 something at the breakpoint it was seen on. The `↳` line is the pinned
 element. AGENTS.md in this repo is a drop-in brief for your agent.
 
@@ -129,7 +129,7 @@ element. AGENTS.md in this repo is a drop-in brief for your agent.
 }
 ```
 
-`route` is whatever scope the host mounts the panel with — a URL path in a
+`route` is whatever scope the host mounts the panel with: a URL path in a
 routed app, a design slug elsewhere. `payload` carries host context the store
 never interprets (the variant knobs a note was written against, a flag set),
 capped at 64 KB serialized; the CLI prints a flat map as a `key=value` line.
@@ -165,8 +165,8 @@ const { status, headers, body } = notesResponse('.iteration-feedback.json', {
 });
 ```
 
-Render those three onto your response — Node middleware, Next route handler,
-Bun.serve, anything. `serveNotesRequest(file, request)` does the same for
+Render those three onto your response from Node middleware, a Next route
+handler, Bun.serve, anything. `serveNotesRequest(file, request)` does the same for
 `Request`-based runtimes. Mount the panel with `mountIteration` from
 `iso-iterate/react` (or render `<IterationPanel/>` in your own tree) pointed
 at whatever path you served.
