@@ -122,7 +122,7 @@ function escapeHtml(v: string): string {
 }
 
 function indexPage(origin: string, file: string): string {
-  const tag = `<script src="${origin}${BUNDLE_PATH}" defer></` + 'script>';
+  const tag = `<script src="${origin}${BUNDLE_PATH}" defer></script>`;
   const mark = bookmarklet(origin);
   return `<!doctype html>
 <html lang="en">

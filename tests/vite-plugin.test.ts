@@ -37,7 +37,12 @@ beforeAll(async () => {
     root,
     configFile: false,
     logLevel: 'silent',
-    server: { port: 0, host: '127.0.0.1' },
+    // watch: null — the fixture never changes. noDiscovery — the virtual
+    // module's react imports otherwise schedule a background esbuild
+    // prebundle, and close() racing that run was a coin-flip teardown hang
+    // (reproduced 50/50 outside vitest; 0/8 with the optimizer off).
+    server: { port: 0, host: '127.0.0.1', watch: null },
+    optimizeDeps: { noDiscovery: true, include: [] },
     resolve: {
       alias: {
         'iso-iterate/react': resolve(import.meta.dirname, '..', 'src/react/index.ts'),
@@ -52,6 +57,9 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // fetch() keeps its connections alive, and vite's close() waits for open
+  // sockets — without this the suite passes and then hangs in teardown.
+  (server?.httpServer as import('node:http').Server | null)?.closeAllConnections?.();
   await server?.close();
   if (root) rmSync(root, { recursive: true, force: true });
 });
