@@ -4,10 +4,6 @@
   "type": "module",
   "license": "MIT",
   "description": "Iteration — a dev-only internal feedback loop for coding agents. A one-line Vite plugin adds a panel (page- or element-scoped notes) that autosaves to a local gitignored file, plus a CLI for the agent to read and mark notes done. Works across Vite/React Router/Next projects.",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/aaroi/iso-iterate.git"
-  },
   "engines": {
     "node": ">=20"
   },
