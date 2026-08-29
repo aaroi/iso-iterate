@@ -1,6 +1,6 @@
 {
   "name": "iso-iterate",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "license": "MIT",
   "description": "Iteration — a dev-only internal feedback loop for coding agents. One integration line adds a bottom-right panel where reviewers write notes like chat messages, optionally pinned to a real UI element, into a local gitignored file; a CLI lets the agent read notes and mark them done. Vite plugin, framework-free server handler, or a standalone script for any host.",
