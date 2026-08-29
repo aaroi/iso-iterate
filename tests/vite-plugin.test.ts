@@ -58,7 +58,11 @@ afterAll(async () => {
 
 describe('the Vite adapter, served', () => {
   it('injects the mount script into the host HTML without a source edit', async () => {
-    const html = await (await fetch(`${origin}/`)).text();
+    // A browser navigation asks for text/html; injection is gated on that so
+    // module and asset responses are never buffered.
+    const html = await (
+      await fetch(`${origin}/`, { headers: { accept: 'text/html' } })
+    ).text();
     // The host's own markup survives...
     expect(html).toContain('<div id="app"></div>');
     // ...and the mount rides in before </body>, carrying real transformed code
@@ -70,6 +74,12 @@ describe('the Vite adapter, served', () => {
     );
     expect(script).toContain('mountIteration');
     expect(script.length).toBeGreaterThan(200);
+  });
+
+
+  it('leaves non-HTML requests alone', async () => {
+    const res = await fetch(`${origin}/`, { headers: { accept: '*/*' } });
+    expect((await res.text())).not.toContain('data-iso-iterate-inject');
   });
 
   it('serves the notes endpoint against the configured file', async () => {

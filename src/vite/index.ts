@@ -54,7 +54,6 @@ const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
 
 export function iteration(options: IterationViteOptions = {}): IterationPlugin {
   const file = options.file ?? DEFAULT_FILE;
-  ensureFileIgnored(resolve(file));
   let isDev = false;
 
   const plugin: Plugin = {
@@ -77,6 +76,8 @@ export function iteration(options: IterationViteOptions = {}): IterationPlugin {
     },
     configureServer(server) {
       if (!isDev) return;
+      // Here, not at construction: a production build should not touch .git.
+      ensureFileIgnored(resolve(file));
 
       // Notes endpoint → local file.
       server.middlewares.use(NOTES_ENDPOINT, (req, res, next) => {
@@ -117,10 +118,17 @@ export function iteration(options: IterationViteOptions = {}): IterationPlugin {
         return mountCodePromise;
       };
 
-      server.middlewares.use(async (_req, res, next) => {
-        const code = await getMountCode();
-        if (code) injectHtmlResponse(res, code);
-        next();
+      server.middlewares.use((req, res, next) => {
+        // Only navigations: buffering every response to look for </body>
+        // would tax each of the hundreds of module requests a dev page makes.
+        if (!(req.headers.accept ?? '').includes('text/html')) {
+          next();
+          return;
+        }
+        getMountCode().then((code) => {
+          if (code) injectHtmlResponse(res, code);
+          next();
+        });
       });
     },
   };

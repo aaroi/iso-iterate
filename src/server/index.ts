@@ -9,7 +9,6 @@
 
 export {
   ensureFileIgnored,
-  handleNotes,
   notesResponse,
   readNotes,
   writeNotes,
@@ -18,7 +17,6 @@ export {
 } from '../store';
 import { notesResponse } from '../store';
 export type {
-  IterationRequest,
   NotesRequest,
   NotesResponse,
   StoredNote,

@@ -1,17 +1,46 @@
 # iso-iterate
 
-A dev-only feedback loop between a person reviewing a running web app and the
-coding agent working on it. The reviewer writes notes on the page itself —
-optionally pinned to a real element by clicking it — and the agent reads them
-from a local file, acts on them, and marks them done.
+Click the thing you want changed instead of describing it.
 
-Describing UI in chat goes wrong: "the second button in the third card" points
-at three different things on three screens. A note written on the page carries
-the route, a CSS selector for the pinned element, and the window size it was
-written at, so the agent looks at the right thing at the right breakpoint.
+iso-iterate is a feedback loop between a person looking at a running web app
+and the coding agent building it. A small panel sits bottom right of your dev
+build. You write notes in it — press the crosshair and click any element to
+pin a note to it — and each note lands in a JSON file in your repo with the
+route, a CSS selector, and your window size. The agent reads that file with
+one command, does the work, and marks each note done. Done notes disappear
+from your panel, so the queue drains as the agent works.
 
-Notes live in a gitignored JSON file in your repo. No database, no hosted
-service, and nothing renders in a production build.
+Dev-only by design: nothing renders in a production build, and there is no
+database and no hosted service — just a gitignored file.
+
+## Who it's for
+
+- Anyone reviewing their own app while an agent (Claude Code, Codex, Cursor,
+  anything that can run a CLI) writes the code.
+- A designer or PM reviewing a dev build who would rather click the button
+  than file a ticket about it.
+- Agents themselves: if you are an agent reading this, `npx iso-iterate`
+  lists open notes — treat each one as a task, reproduce at the viewport
+  printed next to its timestamp, and `npx iso-iterate --done <id>` when
+  fixed.
+
+## Why not the agent's built-in browser?
+
+Claude Code and Codex can open your app themselves — screenshot it, click
+around, verify a fix. That covers the agent looking at the app. iso-iterate
+covers the other direction: you looking at the app and telling the agent what
+to change.
+
+- You review in your own browser — your login, your extensions, your real
+  window sizes, on your own time. Notes queue up in the file; the agent works
+  through them now or next session.
+- A click hands the agent a selector, a route, and a viewport. A chat message
+  hands it "the second button in the third card" and a guess.
+- Feedback survives the conversation. Ten notes written tonight are still
+  there for whichever agent, model, or tool picks them up tomorrow.
+
+The two compose: you pin the note, the agent fixes it and uses its own
+browser to verify, then marks it done.
 
 ## Quick start
 
@@ -21,19 +50,17 @@ service, and nothing renders in a production build.
 npx iso-iterate serve
 ```
 
-Run it inside the repo you are reviewing. It owns the notes file, serves the
-endpoint, and hands out the panel as one self-contained script — React
-included, so the host needs no bundler, no React install, no build step:
+Run it inside the repo you're reviewing, then add one line to your dev page:
 
 ```html
-<!-- dev only -->
 <script src="http://127.0.0.1:4123/iso-iterate.js" defer></script>
 ```
 
-Open `http://127.0.0.1:4123` for this tag with a copy button, plus a
-**bookmarklet** for pages whose dev server you can't configure at all. Only
-loopback origins can reach the server, so a public page you happen to visit
-cannot post into your repo.
+That's the whole integration — React ships inside the script, so the host
+needs no bundler, no React, no build step. `http://127.0.0.1:4123` serves
+this tag with a copy button and a bookmarklet for pages you can't edit.
+Only loopback origins can reach the server, so a public page you happen to
+visit cannot write into your repo.
 
 ### Vite — two lines, no HTML edit
 
@@ -47,26 +74,22 @@ import { iteration } from 'iso-iterate/vite';
 export default defineConfig({ plugins: [iteration()] });
 ```
 
-The plugin serves the endpoint from the dev server and injects the panel into
-the served HTML. Remove the two lines and the loop is gone; nothing else in
-the repo changed.
+The plugin serves the endpoint from the dev server and injects the panel.
+Remove the two lines and the loop is gone; nothing else changed.
 
-## Reviewing
+## Using the panel
 
-The panel is a small pen icon, bottom right, on every page (hidden on
-auth/error routes). It works like a chat with the agent:
+It works like a chat with the agent:
 
-- Type a note, press **Enter**. The field clears instantly and keeps focus, so
-  five notes is five sentences.
-- The **crosshair** pins an element: hover highlights, click attaches it to
-  the note as a removable chip.
-- **Click a note** to edit it. Delete floats in on hover. Done notes hide
-  behind a toggle, so the queue drains as the agent works.
-- Unsent text survives closing the panel as a draft.
+- Type, press **Enter**. The field clears instantly and keeps focus.
+- The **crosshair** pins an element — hover highlights, click attaches.
+- **Click a note** to edit it; delete appears on hover; long notes truncate
+  to one line (hover for the full text).
+- Unsent text survives closing the panel.
 
-The panel renders in a shadow root, so your CSS can't restyle it and its CSS
-can't touch your page — and it samples the page behind it to decide between
-its light and dark look, so it belongs on either without configuration.
+The panel renders in a shadow root — your CSS can't restyle it, its CSS
+can't touch your page — and it samples the page behind it to match, light or
+dark, with no configuration.
 
 ## The agent side
 
@@ -86,22 +109,20 @@ npx iso-iterate --days 30     # widen the window
   Default label should be Get started, with cursor-pointer.
 ```
 
-The header line carries the viewport the note was written at; the `↳` line is
-the pinned element's selector. Tell your agent: an open note is a task — run
-`npx iso-iterate` at the start of a session, act on what's open, and `--done`
-each note so the reviewer's panel reflects it. AGENTS.md in this repo is a
-drop-in brief for the agent.
+`900×620` is the reviewer's window size — layout feedback only means
+something at the breakpoint it was seen on. The `↳` line is the pinned
+element. AGENTS.md in this repo is a drop-in brief for your agent.
 
-## The note model
+## The note
 
 ```jsonc
 {
   "id": "a85a7b93-…",
-  "route": "/projects",            // scope string; nothing parses it
+  "route": "/projects",           // scope string; nothing parses it
   "feedback": "Default label should be Get started.",
   "element": { "tag": "button", "text": "Join the waitlist", "selector": "#primary-cta" },
   "viewport": { "w": 900, "h": 620 },
-  "payload": { },                  // optional host context, never interpreted
+  "payload": { },                 // optional host context, stored verbatim
   "done": false,
   "doneAt": null,
   "createdAt": "2026-08-29T11:49:03.401Z"
@@ -109,32 +130,30 @@ drop-in brief for the agent.
 ```
 
 `route` is whatever scope the host mounts the panel with — a URL path in a
-routed app, a design slug or component name elsewhere. `payload` carries
-host-specific context (the variant knobs a design note was written against, a
-feature-flag set); iso-iterate stores and returns it verbatim, caps it at
-64 KB serialized, and the CLI prints a flat map as a `key=value` line.
+routed app, a design slug elsewhere. `payload` carries host context the store
+never interprets (the variant knobs a note was written against, a flag set),
+capped at 64 KB serialized; the CLI prints a flat map as a `key=value` line.
 
 ## Options
 
 ```ts
 iteration({
-  file: '.iteration-feedback.json', // where notes persist (auto-git-ignored
-                                    // via .git/info/exclude, no .gitignore edit)
+  file: '.iteration-feedback.json', // where notes persist; auto-ignored via
+                                    // .git/info/exclude, no .gitignore edit
   rule: { hidden: ['/login'] },     // route visibility
   key: 'my-app',                    // localStorage namespace per app
 })
 ```
 
-`serve` takes the same ideas as flags: `--port 4123`, `--file <path>`.
-
-The route rule supports `hidden` (denylist), `visible` (allowlist, overrides
-`hidden`) and `alwaysHidden` (never shown even when allow-listed; defaults to
-`/api`, `/auth`, `/login`).
+`serve` takes `--port 4123` and `--file <path>`. The route rule supports
+`hidden` (denylist), `visible` (allowlist, overrides `hidden`) and
+`alwaysHidden` (never shown even when allow-listed; defaults to `/api`,
+`/auth`, `/login`).
 
 ## Hosting the endpoint yourself
 
 `serve` and the Vite plugin are two adapters over one core. To serve the
-endpoint from a dev API you already run, use `iso-iterate/server`:
+endpoint from a dev API you already run:
 
 ```ts
 import { notesResponse } from 'iso-iterate/server';

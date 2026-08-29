@@ -91,14 +91,12 @@ describe('serveNotesRequest (fetch/gitworker adapter)', () => {
 
 describe('the ./server subpath surface', () => {
   // The framework-agnostic story rests on `notesResponse` being reachable
-  // without importing vite. It was declared in the docs and used by the Next
-  // adapter while the subpath only re-exported `handleNotes`, so a consumer
-  // got "Export named 'notesResponse' not found" at module load.
+  // without importing vite — a regression here surfaced as "Export named
+  // 'notesResponse' not found" at a consumer's module load.
   it('re-exports every symbol a non-Vite host serves the endpoint with', () => {
     for (const name of [
       'notesResponse',
       'serveNotesRequest',
-      'handleNotes',
       'readNotes',
       'writeNotes',
       'ensureFileIgnored',

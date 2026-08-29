@@ -212,20 +212,28 @@ export function IterationPanel({
     } catch {}
   }
 
-  // Load the route's notes the first time the panel opens; restore the draft.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load-once guard; store is stable.
+  // Refresh the list on every open — the agent marks notes done between
+  // opens, and the queue should drain visibly. Skipped while an optimistic
+  // row is still in flight so a just-sent note cannot blink out. Also
+  // restores the unsent draft.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refetch is an open-time action; store is stable.
   useEffect(() => {
     if (!open) return;
-    if (notes === null) {
-      store.listNotes(route).then(setNotes).catch(() => setNotes([]));
-    }
+    store
+      .listNotes(route)
+      .then((fresh) =>
+        setNotes((prev) =>
+          prev?.some((n) => n.id.startsWith('pending-')) ? prev : fresh,
+        ),
+      )
+      .catch(() => setNotes((prev) => prev ?? []));
     if (text === '') {
       try {
         const draft = window.localStorage.getItem(draftKey);
         if (draft) setText(draft);
       } catch {}
     }
-  }, [open, notes, route]);
+  }, [open, route]);
 
   // Unsent text survives close/reopen — the safety autosave used to provide,
   // without autosave's side effects (no phantom notes, no field-clearing).
@@ -279,11 +287,18 @@ export function IterationPanel({
   useEffect(() => {
     if (!picking) return;
     document.body.style.cursor = 'crosshair';
+    // One highlight update per frame: mousemove fires far more often than
+    // the screen paints, and each update is an elementFromPoint + a render.
+    let frame = 0;
     const onMove = (e: MouseEvent) => {
-      const el = elementAt(e);
-      if (!el) return setHoverRect(null);
-      const r = el.getBoundingClientRect();
-      setHoverRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const el = elementAt(e);
+        if (!el) return setHoverRect(null);
+        const r = el.getBoundingClientRect();
+        setHoverRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+      });
     };
     const onClick = (e: MouseEvent) => {
       const el = elementAt(e);
@@ -305,6 +320,7 @@ export function IterationPanel({
     window.addEventListener('keydown', onKey, true);
     return () => {
       document.body.style.cursor = '';
+      cancelAnimationFrame(frame);
       setHoverRect(null);
       window.removeEventListener('mousemove', onMove, true);
       window.removeEventListener('click', onClick, true);

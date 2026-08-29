@@ -105,26 +105,6 @@ function toItem(n: StoredNote) {
   return item;
 }
 
-export interface IterationRequest {
-  method?: string;
-  url?: string;
-  /** Collected request body for POST. */
-  body?: unknown;
-  /**
-   * The response sink. `setStatus` is a method rather than a `statusCode`
-   * field on purpose: a field invites the caller to build a literal seeded
-   * from the real response (`{ statusCode: res.statusCode, ... }`), and
-   * writing to that literal then goes nowhere — every reply ships as whatever
-   * status the real response already carried. A method has to be wired to
-   * something live.
-   */
-  res: {
-    setStatus(code: number): void;
-    setHeader(key: string, value: string): void;
-    end(body?: string): void;
-  };
-}
-
 /** The transport-agnostic result of a notes request — any runtime (Vite
  *  middleware, Next route handler, Bun serve, Vercel) can render it. */
 export interface NotesResponse {
@@ -241,19 +221,6 @@ export function notesResponse(file: string, req: NotesRequest): NotesResponse {
   }
 
   return json(405, { error: 'method not allowed' });
-}
-
-/** Serve GET/POST/DELETE on the notes endpoint from a local file (the Vite
- *  middleware / imperative adapters). Kept so the plugin stays unchanged. */
-export function handleNotes(file: string, req: IterationRequest) {
-  const { status, headers, body } = notesResponse(file, {
-    method: req.method,
-    url: req.url,
-    body: req.body,
-  });
-  req.res.setStatus(status);
-  for (const [k, v] of Object.entries(headers)) req.res.setHeader(k, v);
-  req.res.end(JSON.stringify(body));
 }
 
 function cap(v: string, max: number): string {
