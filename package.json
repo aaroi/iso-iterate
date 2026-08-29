@@ -1,0 +1,62 @@
+{
+  "name": "iso-iterate",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Iteration — a dev-only internal feedback loop for coding agents. A one-line Vite plugin adds a panel (page- or element-scoped notes) that autosaves to a local gitignored file, plus a CLI for the agent to read and mark notes done. Works across Vite/React Router/Next projects.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aaroi/iso-iterate.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    "./react": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite-plugin.d.ts",
+      "import": "./dist/vite-plugin.js"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "files": ["dist"],
+  "bin": {
+    "iso-iterate": "./dist/cli.js"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsup",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19",
+    "react-dom": "^18 || ^19",
+    "vite": "^5 || ^6 || ^7"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.7",
+    "@types/node": "24.13.3",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "react": "^19",
+    "react-dom": "^19",
+    "tsup": "^8",
+    "typescript": "^5",
+    "vite": "^7",
+    "vitest": "^4.1.10"
+  }
+}
