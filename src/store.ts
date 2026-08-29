@@ -57,6 +57,10 @@ export function ensureFileIgnored(file: string): void {
   try {
     const gitRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
       encoding: 'utf8',
+      // Outside a repo git writes "fatal: not a git repository" to stderr, and
+      // inheriting it prints that over the server's own startup banner. The
+      // throw is the signal we act on; the message is noise.
+      stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
     const infoExclude = `${gitRoot}/.git/info/exclude`;
     const absolute = resolve(file);

@@ -11,6 +11,9 @@
  *   npx iso-iterate --done <id>    # mark addressed (id prefix ok)
  *   npx iso-iterate --undone <id>  # reopen
  *   npx iso-iterate --file <path>  # point at a non-default notes file
+ *
+ *   npx iso-iterate serve          # stand up the endpoint + panel for any host
+ *   npx iso-iterate serve --port 4123
  */
 import { resolve } from 'node:path';
 
@@ -35,7 +38,7 @@ const undoneIdx = args.indexOf('--undone');
 // Indices that belong to a flag or its value, so the leftover positional is
 // the route. Each `--x value` occupies two slots.
 const consumed = new Set<number>();
-for (const flag of ['--days', '--file', '--done', '--undone']) {
+for (const flag of ['--days', '--file', '--done', '--undone', '--port', '--host']) {
   const idx = args.indexOf(flag);
   if (idx >= 0) {
     consumed.add(idx);
@@ -43,6 +46,28 @@ for (const flag of ['--days', '--file', '--done', '--undone']) {
   }
 }
 const route = args.find((a, i) => !a.startsWith('--') && !consumed.has(i));
+
+// `serve` is the plug-and-play path: run it in the repo and it owns the notes
+// file, serves the endpoint and hands out the panel as one script tag, so a
+// host with no Vite (or no build step at all) still gets the loop.
+if (args[0] === 'serve') {
+  const { serveIteration, DEFAULT_PORT } = await import('../serve/index');
+  const port = Number(valueFor('--port') ?? DEFAULT_PORT);
+  const served = await serveIteration({
+    file,
+    port,
+    host: valueFor('--host'),
+  });
+  console.log(`iso-iterate serving on ${served.url}`);
+  console.log(`  notes  ${file}`);
+  console.log(`  panel  <script src="${served.bundleUrl}" defer></script>`);
+  console.log(`  setup  ${served.url}  (script tag + bookmarklet)`);
+  const stop = () => {
+    void served.close().then(() => process.exit(0));
+  };
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
+} else {
 
 const notes = readNotes(file);
 const within = (iso: string, d: number) =>
@@ -111,6 +136,8 @@ for (const n of rows) {
 }
 console.log(`\n${rows.length} iteration note(s).`);
 
+}
+
 /**
  * One compact line of a note's host payload — the context that gives the note
  * its meaning, like the knob settings a design note was written against. A
@@ -120,20 +147,40 @@ console.log(`\n${rows.length} iteration note(s).`);
 function describePayload(payload: unknown, max = 300): string {
   if (payload === null) return '';
   let text: string;
-  const entries =
-    typeof payload === 'object' && !Array.isArray(payload)
-      ? Object.entries(payload as Record<string, unknown>)
-      : null;
-  if (
-    entries?.every(([, v]) => typeof v === 'string' || typeof v === 'number')
-  ) {
-    text = entries.map(([k, v]) => `${k}=${v}`).join(' ');
+  const flat = asFlatMap(payload);
+  if (flat) {
+    text = flat;
   } else {
-    try {
-      text = JSON.stringify(payload) ?? '';
-    } catch {
-      return '(unserializable payload)';
+    // A host that nests its context under one key (`{ variants: {...} }`) is
+    // the common shape, and dumping it as JSON buries the part worth reading.
+    const entries = asEntries(payload);
+    const single = entries?.length === 1 ? entries[0] : null;
+    const inner = single ? asFlatMap(single[1]) : null;
+    if (single && inner) {
+      text = `${single[0]}: ${inner}`;
+    } else {
+      try {
+        text = JSON.stringify(payload) ?? '';
+      } catch {
+        return '(unserializable payload)';
+      }
     }
   }
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function asEntries(v: unknown): [string, unknown][] | null {
+  return v && typeof v === 'object' && !Array.isArray(v)
+    ? Object.entries(v as Record<string, unknown>)
+    : null;
+}
+
+/** `key=value key=value` when every value is a scalar, else null. */
+function asFlatMap(v: unknown): string | null {
+  const entries = asEntries(v);
+  if (!entries?.length) return null;
+  if (!entries.every(([, x]) => typeof x === 'string' || typeof x === 'number')) {
+    return null;
+  }
+  return entries.map(([k, x]) => `${k}=${x}`).join(' ');
 }

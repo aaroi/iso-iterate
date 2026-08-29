@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
-  "description": "Iteration — a dev-only internal feedback loop for coding agents. A one-line Vite plugin adds a panel (page- or element-scoped notes) that autosaves to a local gitignored file, plus a CLI for the agent to read and mark notes done. Works across Vite/React Router/Next projects.",
+  "description": "Iteration \u2014 a dev-only internal feedback loop for coding agents. A one-line Vite plugin adds a panel (page- or element-scoped notes) that autosaves to a local gitignored file, plus a CLI for the agent to read and mark notes done. Works across Vite/React Router/Next projects.",
   "engines": {
     "node": ">=20"
   },
@@ -19,6 +19,10 @@
     "./server": {
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js"
+    },
+    "./serve": {
+      "types": "./dist/serve.d.ts",
+      "import": "./dist/serve.js"
     },
     "./vite": {
       "types": "./dist/vite-plugin.d.ts",

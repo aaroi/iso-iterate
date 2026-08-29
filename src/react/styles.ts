@@ -1,3 +1,39 @@
+/**
+ * iso-iterate — the panel's styles, as a string.
+ *
+ * A string rather than a `.css` import so one source serves both mount modes:
+ * `mountIteration` puts it inside a shadow root (where a stylesheet in
+ * `document.head` would never reach), and a host embedding `<IterationPanel/>`
+ * in its own tree gets it injected into the document. It also means a consumer
+ * needs no CSS-capable bundler step and no import of ours.
+ *
+ * Every selector is namespaced `.iso-iter-*`, so nothing here matches host
+ * markup even in the document-level case.
+ */
+
+const MARKER = 'data-iso-iterate-styles';
+
+export const PANEL_CSS = `
+/* The panel used to borrow the host page's reset — Tailwind preflight and
+   friends gave it box-sizing and a button font reset. Inside a shadow
+   root no document author styles cross the boundary (only inherited
+   properties and custom properties do), so the reset has to travel with the
+   panel or its buttons fall back to the UA default face and its padding math
+   shifts. Scoped to our own subtree, so it changes nothing for a host that
+   embeds the component in the document instead. */
+.iso-iter-root,
+.iso-iter-root *,
+.iso-iter-root *::before,
+.iso-iter-root *::after {
+  box-sizing: border-box;
+}
+.iso-iter-root button,
+.iso-iter-root textarea {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+}
+
 /*
  * iso-iterate — self-contained dark styles for the Iteration panel.
  * Reads the host app's design tokens as CSS variables when present
@@ -229,4 +265,26 @@
 .iso-iter-note-actions button:hover {
   background: var(--layer-04, rgba(255, 255, 255, 0.05));
   color: var(--fg-1, #f8fafc);
+}
+`;
+
+/**
+ * Put the panel's styles in `target`, once. Idempotent: a second call with the
+ * same root is a no-op, so several panels (or a remount) do not stack copies.
+ *
+ * `target` is whatever `getRootNode()` returns for the panel — a `ShadowRoot`
+ * when mounted by `mountIteration`, the `Document` when a host embeds the
+ * component directly.
+ */
+export function ensurePanelStyles(target: Document | ShadowRoot): void {
+  const parent = target instanceof Document ? target.head : target;
+  if (!parent || parent.querySelector(`[${MARKER}]`)) return;
+  const style = (target instanceof Document ? target : target.ownerDocument)
+    .createElement('style');
+  style.setAttribute(MARKER, '');
+  style.textContent = PANEL_CSS;
+  // Prepend inside a shadow root so host-passed styles could still win, and
+  // append in the document so the panel is not undercut by later app CSS.
+  if (target instanceof Document) parent.appendChild(style);
+  else parent.insertBefore(style, parent.firstChild);
 }

@@ -56,6 +56,22 @@ written on.
 - There is no hosted endpoint and no database; everything is the local file.
 - Nothing here renders in a production build.
 
+## Standing the loop up
+
+Two ways, depending on the host:
+
+```bash
+npx iso-iterate serve        # any framework: one <script src> in the host's dev HTML
+                             # (or the bookmarklet at http://127.0.0.1:4123)
+```
+
+or, for a Vite host, register `iteration()` from `iso-iterate/vite` in
+`vite.config.ts` — two lines, no host HTML.
+
+Run `serve` **inside the repo being reviewed**. The process that owns the notes
+file is then the checkout you are working in, so a note's route and selector
+always point at code you can open.
+
 ## Publishing this package
 
 Not yet published to any registry; consumed as a local/git dependency today.

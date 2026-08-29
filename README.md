@@ -14,10 +14,39 @@ source.
 | `IterationPanel` | React control (fixed bottom-right): Overall / Element notes, autosave, edit/delete, done toggle. Self-contained dark styles. | `iso-iterate/react` |
 | Vite plugin | Serves `/api/iteration/notes` from a local file and injects the panel (no host mount line). | `iso-iterate/vite` |
 | Server | The transport-free half: the file store plus `notesResponse(file, req)`, which returns `{ status, headers, body }` for any runtime to render. Imports no React and no Vite. | `iso-iterate/server` |
+| Standalone server | `iso-iterate serve` — owns the notes file, serves the endpoint, and hands out the panel as one self-contained script. No build integration in the host. | `iso-iterate/serve` |
 | CLI | `iso-iterate` reads notes and marks them done. | `iso-iterate/cli` / `npx` |
 | Core | Note model, element descriptor, route allowlist, `localStorage` fallback. | `iso-iterate/core` |
 
-## Plug into a new project (the whole guide)
+## Plug into a new project
+
+Two ways in. Use the server if the host is not a Vite app, or if you would
+rather not touch its build at all.
+
+### `iso-iterate serve` — one script tag, any framework
+
+```bash
+npx iso-iterate serve
+```
+
+Run it **inside the repo you are reviewing**. It owns the notes file, serves
+`/api/iteration/notes`, and hands out the panel as a self-contained bundle with
+React inside, so the host needs no bundler, no React and no build step:
+
+```html
+<!-- dev only -->
+<script src="http://127.0.0.1:4123/iso-iterate.js" defer></script>
+```
+
+Running it in the repo is what keeps a note unambiguous — the process holding
+the file is the checkout the agent works in, so nothing has to map a port back
+to a repo. Open `http://127.0.0.1:4123` for the tag and a **bookmarklet**, which
+is how you review a page whose dev server you cannot configure at all.
+
+Only loopback origins may reach it, so a public page you happen to visit cannot
+post into your repo.
+
+### The Vite plugin — two lines, zero host HTML
 
 An agent can wire this into any Vite/React repository in **two lines** and no
 source edits. Tell the agent: *"Bring in `iso-iterate` and register its
@@ -51,9 +80,10 @@ Vite plugin; use `npx iso-iterate` to read reviewer notes."*
 Revertable: remove the plugin line and the dev dependency and the loop is gone;
 nothing else changed.
 
-## Hosting it outside Vite
+## Serving the endpoint from your own runtime
 
-The Vite plugin is one adapter, not the product. The panel is a plain React
+`iso-iterate serve` and the Vite plugin are two adapters over one core. If you
+would rather serve the endpoint from a dev API you already run, do that. The Vite plugin is one adapter, not the product. The panel is a plain React
 component and the store is plain Node, so any dev runtime can host the loop by
 serving one endpoint from `iso-iterate/server`:
 
@@ -140,6 +170,20 @@ is host-specific context iso-iterate stores and returns but never reads.
 pnpm install
 pnpm check        # typecheck + lint + test + build
 ```
+
+## The panel is isolated from your app
+
+`mountIteration` (and so the Vite plugin and the standalone bundle) renders the
+panel into a **shadow root**. Your resets, your `button` and `textarea` rules,
+your global handlers and your stacking stop at the boundary, so the panel looks
+and behaves the same in an app nobody vetted it against. Inherited CSS custom
+properties still cross, which is deliberate: the panel reads `--font-sans` and
+`--foreground` from the host so it matches the surrounding theme.
+
+Embedding `<IterationPanel/>` in your own tree instead puts it in the document,
+where it has no such protection — but its selectors are all namespaced
+`.iso-iter-*` and it carries its own reset, so it does not touch your markup
+either way. No CSS import needed in either case.
 
 ## Status
 

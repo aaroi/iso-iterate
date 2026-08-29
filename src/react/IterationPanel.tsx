@@ -10,6 +10,7 @@ import {
   type IterationStoreConfig,
   type RouteGateOptions,
 } from '../core/index';
+import { ensurePanelStyles } from './styles';
 
 export interface Rect {
   top: number;
@@ -198,12 +199,28 @@ export function IterationPanel({ route, store: storeCfg, rule }: IterationPanelP
     };
   }, [picking]);
 
+  // Styles travel with the panel: a host embedding this component needs no CSS
+  // import of ours, and a shadow-mounted one gets them inside its boundary
+  // (where a stylesheet in document.head would never reach). Idempotent.
+  useEffect(() => {
+    if (!visible) return; // nothing rendered yet, so no root to style
+    const root = rootRef.current?.getRootNode();
+    if (root instanceof ShadowRoot || root instanceof Document) {
+      ensurePanelStyles(root);
+    }
+  }, [visible]);
+
   // Escape / outside click closes an open panel.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
     const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+      // composedPath, not `contains(e.target)`: a listener on window sees
+      // events from inside a shadow root retargeted to the host, so `contains`
+      // reports every click on our own panel as an outside click and the panel
+      // closes under the cursor. The composed path still holds the real nodes.
+      const root = rootRef.current;
+      if (root && !e.composedPath().includes(root)) {
         setOpen(false);
       }
     };
