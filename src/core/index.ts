@@ -197,6 +197,7 @@ export function createIterationStore(cfg: IterationStoreConfig = {}) {
           route: item.route,
           feedback: item.feedback,
           element: item.element ?? null,
+          ...(item.payload !== undefined ? { payload: item.payload } : {}),
         }),
       });
       if (!res.ok) return; // keep backlog, retry next time
@@ -234,6 +235,7 @@ export function createIterationStore(cfg: IterationStoreConfig = {}) {
     feedback: string,
     element: IterationElement | null,
     id: string | null,
+    payload?: unknown,
   ): string {
     const all = localAll();
     let savedId: string;
@@ -251,6 +253,7 @@ export function createIterationStore(cfg: IterationStoreConfig = {}) {
         element,
         done: false,
         createdAt: new Date().toISOString(),
+        ...(payload !== undefined ? { payload } : {}),
       });
     }
     localWrite(all);
@@ -262,20 +265,28 @@ export function createIterationStore(cfg: IterationStoreConfig = {}) {
     feedback: string,
     element: IterationElement | null,
     id: string | null,
+    /** Opaque host context, attached only when the caller sends it. */
+    payload?: unknown,
   ): Promise<string> {
-    if (!endpoint) return saveLocal(route, feedback, element, id);
+    if (!endpoint) return saveLocal(route, feedback, element, id, payload);
     try {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, route, feedback, element }),
+        body: JSON.stringify({
+          id,
+          route,
+          feedback,
+          element,
+          ...(payload !== undefined ? { payload } : {}),
+        }),
       });
       if (!res.ok) throw new Error(`Saving iteration note failed (${res.status})`);
       return ((await res.json()) as { id: string }).id;
     } catch {
       // Dev server blipped: never lose the note — stash in localStorage. The
       // next `listNotes` flushes the backlog once the endpoint is reachable.
-      return saveLocal(route, feedback, element, id);
+      return saveLocal(route, feedback, element, id, payload);
     }
   }
 

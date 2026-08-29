@@ -13,6 +13,9 @@ export interface MountIterationOptions {
   rule?: RouteGateOptions;
   /** Override the auto-detected pathname (sub-apps). Default: pathname. */
   getRoute?: () => string;
+  /** Host context attached to each new note as its opaque payload — see
+   *  IterationPanelProps.getPayload. */
+  getPayload?: () => unknown;
 }
 
 /**
@@ -48,6 +51,7 @@ export function mountIteration(opts: MountIterationOptions): () => void {
         route={getRoute()}
         store={{ endpoint: opts.endpoint, key: opts.key }}
         rule={opts.rule}
+        getPayload={opts.getPayload}
       />,
     );
   }

@@ -32,239 +32,315 @@ export const PANEL_CSS = `
   font: inherit;
   color: inherit;
   margin: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.iso-iter-root button {
+  cursor: pointer;
+}
+.iso-iter-root ul,
+.iso-iter-root li,
+.iso-iter-root p {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-/*
- * iso-iterate — self-contained dark styles for the Iteration panel.
- * Reads the host app's design tokens as CSS variables when present
- * (--surface-*, --layer-*, --dot-*, --radius, --font-mono) and falls back to
- * a sensible dark default otherwise, so it looks right in any dark console.
- */
+/* Two voices, deliberately: the host's sans (Inter where the host loads it)
+   for what the reviewer writes, mono for everything the tool itself says —
+   counts, times, selectors, key hints. */
 .iso-iter-root {
+  --iso-sans: var(--font-sans, Inter, ui-sans-serif, system-ui, -apple-system, sans-serif);
+  --iso-mono: var(--font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  --iso-bg: #131317;
+  --iso-raised: #1b1b20;
+  --iso-line: rgba(255, 255, 255, 0.09);
+  --iso-fg: #ececf1;
+  --iso-muted: #8f8f9a;
+  --iso-faint: #5f5f6a;
   position: fixed;
   bottom: 1.25rem;
   right: 1.25rem;
-  z-index: 50;
-  font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
-  color: var(--foreground, var(--fg, #f8fafc));
-}
-
-.iso-iter-fab {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 9999px;
-  border: 1px solid var(--layer-08, rgba(255, 255, 255, 0.11));
-  background: var(--surface-raised, #232327);
-  color: var(--fg-2, #d3d6db);
-  font-size: 0.75rem;
-  font-weight: 500;
-  box-shadow: 0 12px 32px -18px rgb(0 0 0 / 70%);
-  cursor: pointer;
-  transition: background 120ms, border-color 120ms;
-}
-.iso-iter-fab:hover {
-  background: var(--layer-08, rgba(255, 255, 255, 0.11));
-  border-color: var(--layer-12, rgba(255, 255, 255, 0.17));
-}
-
-.iso-iter-hover {
-  position: fixed;
-  z-index: 60;
-  pointer-events: none;
-  border-radius: 3px;
-  box-shadow: 0 0 0 2px var(--dot-blue, oklch(0.7 0.15 252)), 0 0 0 4px oklch(0.7 0.15 252 / 30%);
-}
-
-.iso-iter-panel {
-  position: absolute;
-  bottom: calc(100% + 0.75rem);
-  right: 0;
-  width: 20rem;
-  max-height: calc(100vh - 8rem);
+  z-index: 2147483000;
   display: flex;
   flex-direction: column;
-  border-radius: 0.75rem;
-  border: 1px solid var(--layer-08, rgba(255, 255, 255, 0.11));
-  background: var(--surface-card, #161619);
-  box-shadow: 0 18px 60px -24px rgb(0 0 0 / 75%);
-  color: var(--fg-1, #f8fafc);
-  font-size: 0.75rem;
+  align-items: flex-end;
+  gap: 0.65rem;
+  font-family: var(--iso-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--iso-fg);
+  -webkit-font-smoothing: antialiased;
 }
 
-.iso-iter-seg {
+/* ── The one entry point: an icon, bottom right, everywhere ─────────────── */
+.iso-iter-fab {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 9999px;
+  background: var(--iso-raised);
+  border: 1px solid var(--iso-line);
+  color: var(--iso-fg);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.iso-iter-fab:hover {
+  background: #232329;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.iso-iter-fab:active {
+  transform: scale(0.96);
+}
+.iso-iter-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  display: grid;
+  place-items: center;
+  font-family: var(--iso-mono);
+  font-size: 10px;
+  line-height: 1;
+  background: var(--iso-fg);
+  color: #131317;
+}
+
+/* ── The panel ──────────────────────────────────────────────────────────── */
+.iso-iter-panel {
+  width: 320px;
+  max-height: min(70vh, 520px);
   display: flex;
-  gap: 0.25rem;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  background: var(--layer-03, rgba(255, 255, 255, 0.04));
-  margin: 0.625rem 0.875rem 0;
-}
-.iso-iter-seg button {
-  min-width: 0;
-  flex: 1;
-  border-radius: 0.375rem;
-  padding: 0.375rem 0.625rem;
-  font-size: 0.75rem;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-}
-.iso-iter-seg button.iso-iter-seg-on {
-  background: var(--surface-raised, #232327);
-  color: var(--fg-1, #f8fafc);
-}
-.iso-iter-seg-off {
-  color: var(--muted-foreground, var(--fg-4, #7c838d));
-}
-.iso-iter-seg-off:hover {
-  color: var(--fg-1, #f8fafc);
+  flex-direction: column;
+  border-radius: 16px;
+  background: var(--iso-bg);
+  border: 1px solid var(--iso-line);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
-.iso-iter-target {
+.iso-iter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  font-family: var(--iso-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--iso-faint);
+}
+.iso-iter-head button {
+  font-family: var(--iso-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--iso-faint);
+}
+.iso-iter-head button:hover {
+  color: var(--iso-muted);
+}
+
+/* Chat order: oldest up top, newest right above the composer. The list
+   scrolls internally, so sending never moves the composer under the cursor. */
+.iso-iter-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 6px;
+}
+.iso-iter-note {
+  padding: 7px 8px 8px;
+  border-radius: 10px;
+}
+.iso-iter-note:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+.iso-iter-note p {
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.iso-iter-note-done p {
+  color: var(--iso-faint);
+}
+.iso-iter-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 3px;
+  font-family: var(--iso-mono);
+  font-size: 10px;
+  color: var(--iso-faint);
   min-width: 0;
-  align-self: flex-start;
-  max-width: 100%;
+}
+.iso-iter-el {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin: 0.5rem 0.875rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  background: var(--layer-04, rgba(255, 255, 255, 0.05));
-  color: var(--fg-4, #7c8384);
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.625rem;
+  min-width: 0;
+}
+.iso-iter-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  flex: none;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+.iso-iter-note:hover .iso-iter-actions {
+  opacity: 1;
+}
+.iso-iter-actions button {
+  font-family: var(--iso-mono);
+  font-size: 10px;
+  color: var(--iso-muted);
+}
+.iso-iter-actions button:hover {
+  color: var(--iso-fg);
 }
 
+/* ── The composer, pinned to the bottom ─────────────────────────────────── */
 .iso-iter-compose {
-  position: relative;
-  padding: 0 0.875rem 0.625rem;
+  flex: none;
+  border-top: 1px solid var(--iso-line);
+  padding: 10px 12px 9px;
+}
+.iso-iter-panel .iso-iter-compose:first-child {
+  border-top: 0;
+}
+.iso-iter-editing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+  font-family: var(--iso-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--iso-muted);
+}
+.iso-iter-editing button {
+  font-family: var(--iso-mono);
+  font-size: 10px;
+  color: var(--iso-faint);
+}
+.iso-iter-editing button:hover {
+  color: var(--iso-fg);
+}
+.iso-iter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  margin-bottom: 7px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  font-family: var(--iso-mono);
+  font-size: 10.5px;
+  color: var(--iso-muted);
+}
+.iso-iter-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.iso-iter-chip button {
+  flex: none;
+  color: var(--iso-faint);
+  font-size: 12px;
+  line-height: 1;
+}
+.iso-iter-chip button:hover {
+  color: var(--iso-fg);
 }
 .iso-iter-textarea {
   display: block;
-  min-height: 3.75rem;
   width: 100%;
   resize: none;
-  overflow-y: auto;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--layer-08, rgba(255, 255, 255, 0.11));
-  background: var(--surface-well, #0c0c0e);
-  color: var(--fg-1, #f8fafc);
-  font-size: 0.75rem;
-  line-height: 1.4;
-  outline: none;
+  font-family: var(--iso-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--iso-fg);
+  caret-color: var(--iso-fg);
 }
 .iso-iter-textarea::placeholder {
-  color: var(--fg-4, #7c8384);
+  color: var(--iso-faint);
 }
 .iso-iter-textarea:focus {
-  border-color: var(--layer-12, rgba(255, 255, 255, 0.17));
+  outline: none;
 }
-.iso-iter-save {
-  position: absolute;
-  right: 1.5rem;
-  bottom: 1.25rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.625rem;
-  color: var(--fg-5, #5e6570);
-  pointer-events: none;
+.iso-iter-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 7px;
+}
+.iso-iter-pick {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  color: var(--iso-muted);
+  transition: color 100ms ease, background 100ms ease;
+}
+.iso-iter-pick:hover {
+  color: var(--iso-fg);
+  background: rgba(255, 255, 255, 0.06);
+}
+.iso-iter-pick-on {
+  color: var(--iso-fg);
+  background: rgba(255, 255, 255, 0.08);
+}
+.iso-iter-key {
+  margin-left: auto;
+  font-family: var(--iso-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.03em;
+  color: var(--iso-faint);
+  user-select: none;
+}
+.iso-iter-send {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: var(--iso-fg);
+  color: #131317;
+  transition: opacity 100ms ease, transform 100ms ease;
+}
+.iso-iter-send:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+.iso-iter-send:not(:disabled):active {
+  transform: scale(0.92);
 }
 
-.iso-iter-list {
-  max-height: 12rem;
-  overflow-y: auto;
-  padding: 0.75rem 0.875rem;
-  border-top: 1px solid var(--layer-08, rgba(255, 255, 255, 0.11));
-  background: var(--surface-well, #0c0c0e);
+/* ── Element picking ────────────────────────────────────────────────────── */
+.iso-iter-hint {
+  padding: 5px 11px;
+  border-radius: 9999px;
+  background: var(--iso-raised);
+  border: 1px solid var(--iso-line);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  font-family: var(--iso-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  color: var(--iso-muted);
 }
-.iso-iter-list-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.625rem;
-  color: var(--fg-4, #7c8384);
-}
-.iso-iter-list-head button {
-  border: none;
-  background: transparent;
-  color: var(--fg-4, #7c8384);
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.625rem;
-  cursor: pointer;
-}
-.iso-iter-list-head button:hover {
-  color: var(--fg-1, #f8fafc);
-}
-.iso-iter-list ul {
-  list-style: none;
-  margin: 0.75rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.iso-iter-note {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-.iso-iter-note > div:first-child {
-  min-width: 0;
-}
-.iso-iter-note-text {
-  margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--fg-2, #d7e6db);
-}
-.iso-iter-done-text {
-  margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--fg-4, #7c8384);
-  text-decoration: line-through;
-}
-.iso-iter-note-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-  margin-top: 0.25rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.625rem;
-  color: var(--fg-4, #7c8384);
-}
-.iso-iter-note-meta span[title] {
-  max-width: 10rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.375rem;
-  background: var(--layer-04, rgba(255, 255, 255, 0.05));
-}
-.iso-iter-note-actions {
-  display: flex;
-  flex-shrink: 0;
-  gap: 0.125rem;
-}
-.iso-iter-note-actions button {
-  border: none;
-  background: transparent;
-  color: var(--fg-4, #7c8484);
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.625rem;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.375rem;
-  cursor: pointer;
-}
-.iso-iter-note-actions button:hover {
-  background: var(--layer-04, rgba(255, 255, 255, 0.05));
-  color: var(--fg-1, #f8fafc);
+.iso-iter-hover {
+  position: fixed;
+  pointer-events: none;
+  border: 1px solid rgba(120, 170, 255, 0.9);
+  background: rgba(120, 170, 255, 0.12);
+  border-radius: 3px;
+  z-index: 2147483001;
 }
 `;
 
