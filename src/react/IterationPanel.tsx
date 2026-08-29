@@ -39,6 +39,38 @@ function timeLabel(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+/** rgba components of a computed backgroundColor, or null when unparsable. */
+function parseColor(c: string): { r: number; g: number; b: number; a: number } | null {
+  const m = c.match(/rgba?\(([^)]+)\)/);
+  if (!m) return null;
+  const parts = m[1].split(/[,/]/).map((p) => Number.parseFloat(p.trim()));
+  const [r, g, b] = parts;
+  const a = parts.length > 3 ? parts[3] : 1;
+  if (![r, g, b].every(Number.isFinite)) return null;
+  return { r, g, b, a: Number.isFinite(a) ? a : 1 };
+}
+
+/**
+ * Match the page under the panel: the top-most painted background at the
+ * panel's corner decides the theme, so the control reads as part of a light
+ * page and part of a dark one without any host configuration. An unpainted
+ * stack means the browser's white canvas, hence light.
+ */
+function detectTheme(): 'dark' | 'light' {
+  try {
+    const x = Math.max(0, window.innerWidth - 44);
+    const y = Math.max(0, window.innerHeight - 44);
+    for (const el of document.elementsFromPoint(x, y)) {
+      if (el.closest('[data-iso-iterate]')) continue;
+      const parsed = parseColor(getComputedStyle(el).backgroundColor);
+      if (!parsed || parsed.a < 0.5) continue;
+      const lum = (0.2126 * parsed.r + 0.7152 * parsed.g + 0.0722 * parsed.b) / 255;
+      return lum > 0.55 ? 'light' : 'dark';
+    }
+  } catch {}
+  return 'light';
+}
+
 export interface IterationPanelProps {
   /** The current route; the panel hides itself when `rule` excludes it. */
   route: string;
@@ -82,6 +114,7 @@ export function IterationPanel({
   const [notes, setNotes] = useState<IterationNote[] | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -216,6 +249,32 @@ export function IterationPanel({
     if (open && !picking) textareaRef.current?.focus();
   }, [open, picking]);
 
+  // Re-read the page under the panel on mount, route change and open — and
+  // whenever html/body attributes change, which is where a host's own theme
+  // switch lands (a class or data attribute flip).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: open/route are re-detection triggers, not read inside.
+  useEffect(() => {
+    if (!visible) return;
+    setTheme(detectTheme());
+    // Twice per mutation: right away for hosts that switch instantly, and
+    // again after ~350ms because a host that transitions its background
+    // (transition: background 200ms) still computes the OLD color at
+    // mutation time — the immediate sample alone locks in the wrong theme.
+    let settle: ReturnType<typeof setTimeout> | undefined;
+    const redetect = () => {
+      setTheme(detectTheme());
+      clearTimeout(settle);
+      settle = setTimeout(() => setTheme(detectTheme()), 350);
+    };
+    const observer = new MutationObserver(redetect);
+    observer.observe(document.documentElement, { attributes: true });
+    if (document.body) observer.observe(document.body, { attributes: true });
+    return () => {
+      observer.disconnect();
+      clearTimeout(settle);
+    };
+  }, [visible, open, route]);
+
   // Selector mode: highlight the hovered element, capture the click.
   useEffect(() => {
     if (!picking) return;
@@ -298,7 +357,7 @@ export function IterationPanel({
   if (!visible) return null;
 
   return (
-    <div ref={rootRef} data-iso-iterate className="iso-iter-root">
+    <div ref={rootRef} data-iso-iterate data-theme={theme} className="iso-iter-root">
       {picking && (
         <span data-iso-iterate className="iso-iter-hint">
           click an element · esc cancels
@@ -353,16 +412,20 @@ export function IterationPanel({
                     title={note.done ? undefined : 'Click to edit'}
                     onClick={() => beginEdit(note)}
                   >
-                    <p>{note.feedback}</p>
-                    <div className="iso-iter-meta">
-                      <span>{note.done ? '✓ done' : timeLabel(note.createdAt)}</span>
-                      {note.element && (
+                    <div className="iso-iter-row">
+                      <p>{note.feedback}</p>
+                      <span className="iso-iter-when">
+                        {note.done ? '✓ done' : timeLabel(note.createdAt)}
+                      </span>
+                    </div>
+                    {note.element && (
+                      <div className="iso-iter-meta">
                         <span className="iso-iter-el" title={note.element.selector}>
                           ↳ {note.element.tag}
                           {note.element.text ? ` · ${note.element.text}` : ''}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -475,10 +538,9 @@ export function IterationPanel({
         aria-label={openCount > 0 ? `Iteration — ${openCount} open notes` : 'Iteration'}
         className="iso-iter-fab"
       >
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <title>Iteration</title>
-          <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-          <path d="M21 3v5h-5" />
+          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
         </svg>
         {openCount > 0 && <span className="iso-iter-badge">{openCount}</span>}
       </button>

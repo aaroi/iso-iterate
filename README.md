@@ -1,169 +1,156 @@
 # iso-iterate
 
-A dev-only **internal feedback loop** for coding agents. A one-line
-integration drops an **Iteration** control into any web app: reviewers write
-notes like chat messages — optionally pinned to a real UI element by clicking
-it — into a local gitignored file, and the coding agent reads them and marks
-them done.
-No database, no separate server to run, no permanent changes to the host repo's
-source.
+A dev-only feedback loop between a person reviewing a running web app and the
+coding agent working on it. The reviewer writes notes on the page itself —
+optionally pinned to a real element by clicking it — and the agent reads them
+from a local file, acts on them, and marks them done.
 
-## What you get
+Describing UI in chat goes wrong: "the second button in the third card" points
+at three different things on three screens. A note written on the page carries
+the route, a CSS selector for the pinned element, and the window size it was
+written at, so the agent looks at the right thing at the right breakpoint.
 
-| Piece | What it is | Where it lives |
-|---|---|---|
-| `IterationPanel` | React control (icon, fixed bottom-right): chat-style notes — Enter sends, optional pinned element, edit/delete, done toggle. Self-contained dark styles. | `iso-iterate/react` |
-| Vite plugin | Serves `/api/iteration/notes` from a local file and injects the panel (no host mount line). | `iso-iterate/vite` |
-| Server | The transport-free half: the file store plus `notesResponse(file, req)`, which returns `{ status, headers, body }` for any runtime to render. Imports no React and no Vite. | `iso-iterate/server` |
-| Standalone server | `iso-iterate serve` — owns the notes file, serves the endpoint, and hands out the panel as one self-contained script. No build integration in the host. | `iso-iterate/serve` |
-| CLI | `iso-iterate` reads notes and marks them done. | `iso-iterate/cli` / `npx` |
-| Core | Note model, element descriptor, route allowlist, `localStorage` fallback. | `iso-iterate/core` |
+Notes live in a gitignored JSON file in your repo. No database, no hosted
+service, and nothing renders in a production build.
 
-## Plug into a new project
+## Quick start
 
-Two ways in. Use the server if the host is not a Vite app, or if you would
-rather not touch its build at all.
-
-### `iso-iterate serve` — one script tag, any framework
+### Any app — one script tag
 
 ```bash
 npx iso-iterate serve
 ```
 
-Run it **inside the repo you are reviewing**. It owns the notes file, serves
-`/api/iteration/notes`, and hands out the panel as a self-contained bundle with
-React inside, so the host needs no bundler, no React and no build step:
+Run it inside the repo you are reviewing. It owns the notes file, serves the
+endpoint, and hands out the panel as one self-contained script — React
+included, so the host needs no bundler, no React install, no build step:
 
 ```html
 <!-- dev only -->
 <script src="http://127.0.0.1:4123/iso-iterate.js" defer></script>
 ```
 
-Running it in the repo is what keeps a note unambiguous — the process holding
-the file is the checkout the agent works in, so nothing has to map a port back
-to a repo. Open `http://127.0.0.1:4123` for the tag and a **bookmarklet**, which
-is how you review a page whose dev server you cannot configure at all.
+Open `http://127.0.0.1:4123` for this tag with a copy button, plus a
+**bookmarklet** for pages whose dev server you can't configure at all. Only
+loopback origins can reach the server, so a public page you happen to visit
+cannot post into your repo.
 
-Only loopback origins may reach it, so a public page you happen to visit cannot
-post into your repo.
+### Vite — two lines, no HTML edit
 
-### The Vite plugin — two lines, zero host HTML
-
-An agent can wire this into any Vite/React repository in **two lines** and no
-source edits. Tell the agent: *"Bring in `iso-iterate` and register its
-Vite plugin; use `npx iso-iterate` to read reviewer notes."*
-
-1. **Install:**
-   ```bash
-   npm install -D iso-iterate
-   # or: pnpm add -D iso-iterate
-   ```
-2. **Register the plugin** in `vite.config.ts`:
-   ```ts
-   import { iteration } from 'iso-iterate/vite';
-   export default defineConfig({ plugins: [iteration()] });
-   ```
-   That's everything. The plugin:
-   - serves `/api/iteration/notes` (a dev middleware persisting to a local file),
-   - injects the panel's self-mount into `index.html` (dev only),
-   - auto-ignores the notes file via repo-local `.git/info/exclude` (no
-     `.gitignore` edit, nothing committed),
-   - defaults to hiding the panel on auth/error routes.
-
-3. **The agent reads notes:**
-   ```bash
-   npx iso-iterate            # open notes, all routes
-   npx iso-iterate /projects   # one route
-   npx iso-iterate --done <id>  # mark addressed (id prefix ok)
-   npx iso-iterate --all        # include done items
-   ```
-
-Revertable: remove the plugin line and the dev dependency and the loop is gone;
-nothing else changed.
-
-## Serving the endpoint from your own runtime
-
-`iso-iterate serve` and the Vite plugin are two adapters over one core. If you
-would rather serve the endpoint from a dev API you already run, do that. The Vite plugin is one adapter, not the product. The panel is a plain React
-component and the store is plain Node, so any dev runtime can host the loop by
-serving one endpoint from `iso-iterate/server`:
+```bash
+npm install -D iso-iterate
+```
 
 ```ts
-import { notesResponse, NOTES_ENDPOINT } from 'iso-iterate/server';
-
-// Node/Connect/Express — render the returned parts onto your response.
-const { status, headers, body } = notesResponse('.iteration-feedback.json', {
-  method: req.method,
-  url: req.url,
-  body: parsedJsonBody,
-});
-res.statusCode = status;
-for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-res.end(JSON.stringify(body));
+// vite.config.ts
+import { iteration } from 'iso-iterate/vite';
+export default defineConfig({ plugins: [iteration()] });
 ```
 
-For a `Request`-based runtime (Next route handler, Bun.serve, a Vercel
-function) `serveNotesRequest(file, request)` does the parsing for you and
-returns the same three parts. Mount the panel yourself (below) pointed at
-whatever path you served it on, and the CLI reads the same file either way.
+The plugin serves the endpoint from the dev server and injects the panel into
+the served HTML. Remove the two lines and the loop is gone; nothing else in
+the repo changed.
 
-## Carrying your own context on a note
+## Reviewing
 
-Some hosts have state that gives a note its meaning: the knob settings a design
-note was written against, the selected tenant, a feature-flag set. Send it as
-`payload` on the POST and iso-iterate stores and returns it verbatim, without
-ever interpreting it:
+The panel is a small pen icon, bottom right, on every page (hidden on
+auth/error routes). It works like a chat with the agent:
 
-```ts
-await fetch(NOTES_ENDPOINT, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ route, feedback, element, payload: { variants } }),
-});
+- Type a note, press **Enter**. The field clears instantly and keeps focus, so
+  five notes is five sentences.
+- The **crosshair** pins an element: hover highlights, click attaches it to
+  the note as a removable chip.
+- **Click a note** to edit it. Delete floats in on hover. Done notes hide
+  behind a toggle, so the queue drains as the agent works.
+- Unsent text survives closing the panel as a draft.
+
+The panel renders in a shadow root, so your CSS can't restyle it and its CSS
+can't touch your page — and it samples the page behind it to decide between
+its light and dark look, so it belongs on either without configuration.
+
+## The agent side
+
+```bash
+npx iso-iterate               # open notes, all routes
+npx iso-iterate /projects     # one route
+npx iso-iterate --done <id>   # mark addressed (id prefix is enough)
+npx iso-iterate --undone <id> # reopen
+npx iso-iterate --all         # include done items
+npx iso-iterate --days 30     # widen the window
 ```
 
-Omitting `payload` on a later save leaves the stored one alone, a host that
-never sends one never sees the field, and the CLI prints a flat map as a
-compact `key=value` breadcrumb under the note. Serialized payloads are capped
-at 64 KB; over that (or unserializable) the POST is rejected rather than
-silently truncated.
-
-## Mounting on your own
-
-Prefer to own the mount? You still can, without the plugin:
-
-```tsx
-import { IterationPanel } from 'iso-iterate/react';
-// in any component whose render you control:
-<IterationPanel route="/projects" store={{ endpoint: '/api/iteration/notes' }} />
+```
+## /projects
+- [a85a7b93] (2026-08-29 14:49 · 900×620)
+  ↳ <button> "Join the waitlist" — #primary-cta
+  Default label should be Get started, with cursor-pointer.
 ```
 
-The plugin is just the no-source-change convenience wrapper over this.
+The header line carries the viewport the note was written at; the `↳` line is
+the pinned element's selector. Tell your agent: an open note is a task — run
+`npx iso-iterate` at the start of a session, act on what's open, and `--done`
+each note so the reviewer's panel reflects it. AGENTS.md in this repo is a
+drop-in brief for the agent.
+
+## The note model
+
+```jsonc
+{
+  "id": "a85a7b93-…",
+  "route": "/projects",            // scope string; nothing parses it
+  "feedback": "Default label should be Get started.",
+  "element": { "tag": "button", "text": "Join the waitlist", "selector": "#primary-cta" },
+  "viewport": { "w": 900, "h": 620 },
+  "payload": { },                  // optional host context, never interpreted
+  "done": false,
+  "doneAt": null,
+  "createdAt": "2026-08-29T11:49:03.401Z"
+}
+```
+
+`route` is whatever scope the host mounts the panel with — a URL path in a
+routed app, a design slug or component name elsewhere. `payload` carries
+host-specific context (the variant knobs a design note was written against, a
+feature-flag set); iso-iterate stores and returns it verbatim, caps it at
+64 KB serialized, and the CLI prints a flat map as a `key=value` line.
 
 ## Options
 
 ```ts
 iteration({
-  file: '.iteration-feedback.json', // where notes persist (auto-git-ignored)
-  rule: { hidden: ['/login', '/error'] }, // route denylist/allowlist
-  key: 'iso-iterate-feedback', // localStorage namespace for multi-app origins
+  file: '.iteration-feedback.json', // where notes persist (auto-git-ignored
+                                    // via .git/info/exclude, no .gitignore edit)
+  rule: { hidden: ['/login'] },     // route visibility
+  key: 'my-app',                    // localStorage namespace per app
 })
 ```
 
-The route rule supports `hidden` (denylist, with `+prefix` matching), `visible`
-(an explicit allowlist that overrides `hidden`), and `alwaysHidden` (surfaces
-that are never allowed even when allow-listed, e.g. `/api`, `/auth`, `/login`).
+`serve` takes the same ideas as flags: `--port 4123`, `--file <path>`.
 
-## Model
+The route rule supports `hidden` (denylist), `visible` (allowlist, overrides
+`hidden`) and `alwaysHidden` (never shown even when allow-listed; defaults to
+`/api`, `/auth`, `/login`).
 
-A note is `{ id, route, feedback, element?, payload?, done, doneAt?, createdAt }`
-in a gitignored JSON file. `--done <id>` sets `done: true`; the panel hides done
-notes by default, so the review queue drains as an agent answers notes.
+## Hosting the endpoint yourself
 
-`route` is only the scope string a note is filed under. It is a URL path in a
-routed app, but nothing parses it, so a host that scopes by something else — a
-design slug, a component name — can file notes under that instead. `payload`
-is host-specific context iso-iterate stores and returns but never reads.
+`serve` and the Vite plugin are two adapters over one core. To serve the
+endpoint from a dev API you already run, use `iso-iterate/server`:
+
+```ts
+import { notesResponse } from 'iso-iterate/server';
+
+const { status, headers, body } = notesResponse('.iteration-feedback.json', {
+  method: req.method,
+  url: req.url,
+  body: parsedJsonBody,
+});
+```
+
+Render those three onto your response — Node middleware, Next route handler,
+Bun.serve, anything. `serveNotesRequest(file, request)` does the same for
+`Request`-based runtimes. Mount the panel with `mountIteration` from
+`iso-iterate/react` (or render `<IterationPanel/>` in your own tree) pointed
+at whatever path you served.
 
 ## Development
 
@@ -172,22 +159,4 @@ pnpm install
 pnpm check        # typecheck + lint + test + build
 ```
 
-## The panel is isolated from your app
-
-`mountIteration` (and so the Vite plugin and the standalone bundle) renders the
-panel into a **shadow root**. Your resets, your `button` and `textarea` rules,
-your global handlers and your stacking stop at the boundary, so the panel looks
-and behaves the same in an app nobody vetted it against. Inherited CSS custom
-properties still cross, which is deliberate: the panel reads `--font-sans` and
-`--foreground` from the host so it matches the surrounding theme.
-
-Embedding `<IterationPanel/>` in your own tree instead puts it in the document,
-where it has no such protection — but its selectors are all namespaced
-`.iso-iter-*` and it carries its own reset, so it does not touch your markup
-either way. No CSS import needed in either case.
-
-## Status
-
-Dev-only by design: the panel never renders in a production bundle (the plugin
-injects under `import.meta.env.DEV`, and `mountIteration` is only ever called
-by that injected dev script). There is no hosted feedback endpoint.
+MIT.

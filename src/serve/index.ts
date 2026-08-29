@@ -122,34 +122,91 @@ function escapeHtml(v: string): string {
 }
 
 function indexPage(origin: string, file: string): string {
-  const escaped = escapeHtml(`<script src="${origin}${BUNDLE_PATH}" defer></script>`);
-  const mark = escapeHtml(bookmarklet(origin));
+  const tag = `<script src="${origin}${BUNDLE_PATH}" defer></` + 'script>';
+  const mark = bookmarklet(origin);
   return `<!doctype html>
-<meta charset="utf-8"><title>iso-iterate</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>iso-iterate</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  :root { color-scheme: dark light }
-  body { font: 15px/1.6 ui-sans-serif, system-ui, sans-serif; max-width: 44rem;
-         margin: 4rem auto; padding: 0 1.5rem }
-  code, pre { font-family: ui-monospace, monospace; font-size: 0.9em }
-  pre { padding: 0.9rem 1rem; border-radius: 8px; overflow-x: auto;
-        background: color-mix(in oklab, currentColor 8%, transparent) }
-  a.bm { display: inline-block; padding: 0.4rem 0.9rem; border-radius: 9999px;
-         border: 1px solid currentColor; text-decoration: none; font-weight: 600 }
-  p.muted { opacity: 0.7 }
+  * { box-sizing: border-box; margin: 0; }
+  :root {
+    --bg: #0d0d10; --card: #131317; --line: rgba(255,255,255,.09);
+    --fg: #ececf1; --muted: #8f8f9a; --faint: #5f5f6a;
+    --sans: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  body { background: var(--bg); color: var(--fg); font: 14px/1.6 var(--sans);
+         -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 540px; margin: 0 auto; padding: 12vh 24px 8vh; }
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 9999px; background: #4ade80;
+         box-shadow: 0 0 10px rgba(74,222,128,.5); }
+  h1 { font-family: var(--mono); font-size: 14px; font-weight: 500; letter-spacing: .02em; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 40px; }
+  .sub code { font-family: var(--mono); font-size: 11.5px; color: var(--fg); }
+  h2 { font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+       letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+       margin: 32px 0 10px; }
+  .card { background: var(--card); border: 1px solid var(--line);
+          border-radius: 12px; padding: 13px 16px; }
+  .card.row { display: flex; align-items: center; gap: 14px; }
+  .card pre { font-family: var(--mono); font-size: 12px; line-height: 1.7;
+              color: var(--fg); overflow-x: auto; white-space: pre;
+              scrollbar-width: none; min-width: 0; }
+  .card.row pre { flex: 1; }
+  .card pre::-webkit-scrollbar { display: none; }
+  .card pre .c { color: var(--faint); }
+  .copy { flex: none; font-family: var(--mono); font-size: 10px;
+          color: var(--faint); background: none; padding: 4px 9px;
+          border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  .copy:hover { color: var(--fg); border-color: rgba(255,255,255,.2); }
+  p.note { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+  a.bm { display: inline-flex; align-items: center; gap: 8px; margin-top: 2px;
+         padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px;
+         background: var(--card); color: var(--fg); text-decoration: none;
+         font-family: var(--mono); font-size: 12px; }
+  a.bm:hover { border-color: rgba(255,255,255,.2); }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line);
+           font-family: var(--mono); font-size: 10.5px; color: var(--faint);
+           line-height: 2; overflow-wrap: anywhere; }
 </style>
-<h1>iso-iterate is serving</h1>
-<p>Notes are written to <code>${escapeHtml(file)}</code>.</p>
-<h2>Add the panel to a dev page</h2>
-<pre>${escaped}</pre>
-<h2>Or, on any page you cannot edit</h2>
-<p>Drag this to your bookmarks bar, then click it on the page you want to review.</p>
-<p><a class="bm" href="${mark}">Iteration</a></p>
-<h2>Read the notes</h2>
-<pre>npx iso-iterate            # open notes, all routes
-npx iso-iterate --done &lt;id&gt;  # mark addressed</pre>
-<p class="muted">Dev-only. Loopback origins only, so a public page cannot post
-into your repo.</p>
+</head>
+<body>
+<div class="wrap">
+  <header><span class="dot"></span><h1>iso-iterate</h1></header>
+  <p class="sub">Serving the feedback loop on <code>${escapeHtml(origin)}</code>.</p>
+
+  <h2>Add the panel to your dev page</h2>
+  <div class="card row">
+    <pre>${escapeHtml(tag)}</pre>
+    <button type="button" class="copy" data-c="${escapeHtml(tag)}"
+      onclick="navigator.clipboard.writeText(this.dataset.c);this.textContent='copied';setTimeout(()=>this.textContent='copy',1200)">copy</button>
+  </div>
+  <p class="note">One line, dev only. The panel mounts itself bottom right; no
+  bundler, no React install, no build step in the host.</p>
+
+  <h2>Or on a page you can't edit</h2>
+  <a class="bm" href="${escapeHtml(mark)}">✎ Iteration</a>
+  <p class="note">Drag it to your bookmarks bar, then click it on the page you
+  want to review.</p>
+
+  <h2>Read the notes</h2>
+  <div class="card">
+    <pre>npx iso-iterate              <span class="c"># open notes</span>
+npx iso-iterate --done &lt;id&gt;  <span class="c"># mark addressed</span>
+npx iso-iterate --all        <span class="c"># include done</span></pre>
+  </div>
+
+  <footer>
+    notes → ${escapeHtml(file)}<br>
+    loopback origins only — a public page cannot post into this repo
+  </footer>
+</div>
+</body>
+</html>
 `;
 }
 
