@@ -80,6 +80,7 @@ describe('the Vite adapter, served', () => {
         route: '/projects',
         feedback: 'the runtime tile blanks for every org but the first',
         element: { tag: 'span', text: 'platform-api', selector: 'td > span' },
+        payload: { fixture: 'console' },
       }),
     });
     expect(created.status).toBe(201);
@@ -88,9 +89,11 @@ describe('the Vite adapter, served', () => {
     expect(existsSync(notesFile)).toBe(true);
     const onDisk = JSON.parse(readFileSync(notesFile, 'utf8')) as Array<{
       route: string;
+      payload?: unknown;
     }>;
     expect(onDisk).toHaveLength(1);
     expect(onDisk[0].route).toBe('/projects');
+    expect(onDisk[0].payload).toEqual({ fixture: 'console' });
 
     const listed = (await (
       await fetch(`${origin}${NOTES_ENDPOINT}?route=/projects`)

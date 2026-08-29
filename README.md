@@ -76,6 +76,27 @@ function) `serveNotesRequest(file, request)` does the parsing for you and
 returns the same three parts. Mount the panel yourself (below) pointed at
 whatever path you served it on, and the CLI reads the same file either way.
 
+## Carrying your own context on a note
+
+Some hosts have state that gives a note its meaning: the knob settings a design
+note was written against, the selected tenant, a feature-flag set. Send it as
+`payload` on the POST and iso-iterate stores and returns it verbatim, without
+ever interpreting it:
+
+```ts
+await fetch(NOTES_ENDPOINT, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ route, feedback, element, payload: { variants } }),
+});
+```
+
+Omitting `payload` on a later autosave leaves the stored one alone, a host that
+never sends one never sees the field, and the CLI prints a flat map as a
+compact `key=value` breadcrumb under the note. Serialized payloads are capped
+at 64 KB; over that (or unserializable) the POST is rejected rather than
+silently truncated.
+
 ## Mounting on your own
 
 Prefer to own the mount? You still can, without the plugin:
@@ -104,9 +125,14 @@ that are never allowed even when allow-listed, e.g. `/api`, `/auth`, `/login`).
 
 ## Model
 
-A note is `{ id, route, feedback, element?, done, doneAt?, createdAt }` in a
-gitignored JSON file. `--done <id>` sets `done: true`; the panel hides done
+A note is `{ id, route, feedback, element?, payload?, done, doneAt?, createdAt }`
+in a gitignored JSON file. `--done <id>` sets `done: true`; the panel hides done
 notes by default, so the review queue drains as an agent answers notes.
+
+`route` is only the scope string a note is filed under. It is a URL path in a
+routed app, but nothing parses it, so a host that scopes by something else — a
+design slug, a component name — can file notes under that instead. `payload`
+is host-specific context iso-iterate stores and returns but never reads.
 
 ## Development
 

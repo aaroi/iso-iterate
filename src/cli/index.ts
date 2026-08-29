@@ -105,6 +105,35 @@ for (const n of rows) {
     const label = n.element.text ? `"${n.element.text}"` : '(no text)';
     console.log(`  ↳ <${n.element.tag}> ${label} — ${n.element.selector}`);
   }
+  const context = n.payload === undefined ? '' : describePayload(n.payload);
+  if (context) console.log(`  · ${context}`);
   if (n.feedback) console.log(`  ${n.feedback}`);
 }
 console.log(`\n${rows.length} iteration note(s).`);
+
+/**
+ * One compact line of a note's host payload — the context that gives the note
+ * its meaning, like the knob settings a design note was written against. A
+ * flat map of scalars reads as `key=value`; anything else falls back to
+ * compact JSON. Truncated, because this is a breadcrumb, not the data.
+ */
+function describePayload(payload: unknown, max = 300): string {
+  if (payload === null) return '';
+  let text: string;
+  const entries =
+    typeof payload === 'object' && !Array.isArray(payload)
+      ? Object.entries(payload as Record<string, unknown>)
+      : null;
+  if (
+    entries?.every(([, v]) => typeof v === 'string' || typeof v === 'number')
+  ) {
+    text = entries.map(([k, v]) => `${k}=${v}`).join(' ');
+  } else {
+    try {
+      text = JSON.stringify(payload) ?? '';
+    } catch {
+      return '(unserializable payload)';
+    }
+  }
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}

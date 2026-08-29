@@ -18,7 +18,19 @@ export interface StoredNote {
   done: boolean;
   doneAt: string | null;
   createdAt: string;
+  /** Host-specific context, stored and returned verbatim and never
+   *  interpreted here. A host with state that gives a note its meaning — the
+   *  knob settings a design note was written against, a feature-flag set, the
+   *  selected tenant — nests it under this key so the note survives a
+   *  round-trip through a store that knows nothing about it. Capped at
+   *  {@link PAYLOAD_MAX} serialized bytes. */
+  payload?: unknown;
 }
+
+/** Serialized-size ceiling for a note's opaque `payload`, in bytes. Generous
+ *  next to real usage (the largest observed host blob is ~3.4 KB) and small
+ *  enough that a runaway host is rejected rather than bloating the file. */
+export const PAYLOAD_MAX = 65_536;
 
 export function readNotes(file: string): StoredNote[] {
   if (!existsSync(file)) return [];
@@ -61,7 +73,15 @@ export function ensureFileIgnored(file: string): void {
 }
 
 function toItem(n: StoredNote) {
-  return {
+  const item: {
+    id: string;
+    route: string;
+    feedback: string;
+    element: IterationElement | null;
+    done: boolean;
+    createdAt: string;
+    payload?: unknown;
+  } = {
     id: n.id,
     route: n.route,
     feedback: n.feedback,
@@ -69,6 +89,10 @@ function toItem(n: StoredNote) {
     done: n.done,
     createdAt: n.createdAt,
   };
+  // Absent stays absent: a host that never sends a payload should not start
+  // seeing a null one appear in its notes.
+  if (n.payload !== undefined) item.payload = n.payload;
+  return item;
 }
 
 export interface IterationRequest {
@@ -148,8 +172,9 @@ export function notesResponse(file: string, req: NotesRequest): NotesResponse {
       route?: unknown;
       feedback?: unknown;
       element?: unknown;
+      payload?: unknown;
     };
-    const { id, route, feedback, element } = body;
+    const { id, route, feedback, element, payload } = body;
     if (typeof route !== 'string' || route === '') {
       return json(400, { error: 'route is required' });
     }
@@ -157,6 +182,11 @@ export function notesResponse(file: string, req: NotesRequest): NotesResponse {
       typeof feedback === 'string' ? feedback.trim().slice(0, 4000) : '';
     if (cleanFeedback === '') {
       return json(400, { error: 'feedback is required' });
+    }
+    if (payload !== undefined && !withinPayloadCap(payload)) {
+      return json(400, {
+        error: `payload exceeds ${PAYLOAD_MAX} bytes or is not serializable`,
+      });
     }
     let cleanElement: IterationElement | null = null;
     if (element && typeof element === 'object' && !Array.isArray(element)) {
@@ -175,6 +205,9 @@ export function notesResponse(file: string, req: NotesRequest): NotesResponse {
       if (existing) {
         existing.feedback = cleanFeedback;
         existing.element = cleanElement;
+        // An omitted payload leaves the stored one alone, so a host that only
+        // sends it on the first save does not lose it on the next autosave.
+        if (payload !== undefined) existing.payload = payload;
         writeNotes(file, notes);
         return json(200, { id: existing.id });
       }
@@ -188,6 +221,7 @@ export function notesResponse(file: string, req: NotesRequest): NotesResponse {
       done: false,
       doneAt: null,
       createdAt: new Date().toISOString(),
+      ...(payload !== undefined ? { payload } : {}),
     });
     writeNotes(file, notes);
     return json(201, { id: newId });
@@ -211,6 +245,15 @@ export function handleNotes(file: string, req: IterationRequest) {
 
 function cap(v: string, max: number): string {
   return v.slice(0, max);
+}
+
+/** Whether an opaque payload is serializable and inside {@link PAYLOAD_MAX}. */
+function withinPayloadCap(payload: unknown): boolean {
+  try {
+    return JSON.stringify(payload).length <= PAYLOAD_MAX;
+  } catch {
+    return false; // circular or otherwise unserializable
+  }
 }
 
 /** The endpoint path the client calls. */

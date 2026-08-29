@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { notesResponse, readNotes } from '../src/store';
 import * as server from '../src/server/index';
-import { serveNotesRequest } from '../src/server/index';
+import { PAYLOAD_MAX, serveNotesRequest } from '../src/server/index';
 
 const dirs: string[] = [];
 function tempFile() {
@@ -103,9 +103,78 @@ describe('the ./server subpath surface', () => {
       'writeNotes',
       'ensureFileIgnored',
       'NOTES_ENDPOINT',
+      'PAYLOAD_MAX',
     ]) {
       expect(server, name).toHaveProperty(name);
     }
   });
 });
 
+describe('the opaque payload', () => {
+  const variants = { radius: '26', 'pad-x': '28', 'text-size': '15' };
+
+  function create(file: string, body: Record<string, unknown>) {
+    return notesResponse(file, { method: 'POST', url: '/api/notes', body });
+  }
+
+  it('round-trips host context verbatim through store and endpoint', () => {
+    const file = tempFile();
+    const created = create(file, {
+      route: 'buttons',
+      feedback: 'use Get started as the default label',
+      element: null,
+      payload: { variants },
+    });
+    expect(created.status).toBe(201);
+
+    expect(readNotes(file)[0].payload).toEqual({ variants });
+    const rows = notesResponse(file, { method: 'GET', url: '/api/notes?route=buttons' })
+      .body as Array<{ payload?: { variants: Record<string, string> } }>;
+    expect(rows[0].payload).toEqual({ variants });
+  });
+
+  it('keeps a stored payload when a later autosave omits it', () => {
+    const file = tempFile();
+    const id = (create(file, {
+      route: '/x',
+      feedback: 'v1',
+      element: null,
+      payload: { variants },
+    }).body as { id: string }).id;
+
+    create(file, { id, route: '/x', feedback: 'v2', element: null });
+
+    const [note] = readNotes(file);
+    expect(note.feedback).toBe('v2');
+    expect(note.payload).toEqual({ variants });
+  });
+
+  it('leaves the field absent, not null, for a host that never sends one', () => {
+    const file = tempFile();
+    create(file, { route: '/x', feedback: 'plain', element: null });
+    expect('payload' in readNotes(file)[0]).toBe(false);
+    const rows = notesResponse(file, { method: 'GET', url: '/api/notes?route=/x' })
+      .body as Array<Record<string, unknown>>;
+    expect('payload' in rows[0]).toBe(false);
+  });
+
+  it('rejects an oversized or circular payload instead of storing it', () => {
+    const file = tempFile();
+    const oversized = create(file, {
+      route: '/x',
+      feedback: 'big',
+      element: null,
+      payload: { blob: 'x'.repeat(PAYLOAD_MAX) },
+    });
+    expect(oversized.status).toBe(400);
+
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(
+      create(file, { route: '/x', feedback: 'loop', element: null, payload: circular })
+        .status,
+    ).toBe(400);
+
+    expect(readNotes(file)).toHaveLength(0);
+  });
+});

@@ -14,6 +14,7 @@ export {
   readNotes,
   writeNotes,
   NOTES_ENDPOINT,
+  PAYLOAD_MAX,
 } from '../store';
 import { notesResponse } from '../store';
 export type {

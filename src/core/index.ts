@@ -28,6 +28,9 @@ export interface IterationNote {
   done: boolean;
   doneAt?: string | null;
   createdAt: string;
+  /** Host-specific context the store round-trips without interpreting — see
+   *  `StoredNote.payload`. */
+  payload?: unknown;
 }
 
 /** The minimal structural surface the descriptor builder needs from a DOM
