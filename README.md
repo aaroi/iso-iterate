@@ -26,18 +26,19 @@ database and no hosted service, just a gitignored file.
 
 ## Why not the agent's built-in browser?
 
-Claude Code and Codex can open your app themselves: screenshot it, click
-around, verify a fix. That covers the agent looking at the app. iso-iterate
-covers the other direction, you looking at the app and telling the agent what
-to change.
+Claude Code and Codex ship browsers of their own, and they're good at what
+they're for: the agent looking at your app, screenshotting it, verifying a
+fix. iso-iterate is for the reviewing you do yourself.
 
-- You review in your own browser, with your login, your extensions, and your
-  real window sizes, on your own time. Notes queue up in the file; the agent
-  works through them now or next session.
-- A click hands the agent a selector, a route, and a viewport. A chat message
-  hands it "the second button in the third card" and a guess.
-- Feedback survives the conversation. Ten notes written tonight are still
-  there for whichever agent, model, or tool picks them up tomorrow.
+- **You stay in your own browser.** Your login, your extensions, your window
+  sizes, your pace. Reviewing doesn't mean handing the session to a tool's
+  embedded browser and pointing at things through it.
+- **Structured feedback instead of screenshots.** A click hands the agent a
+  selector, a route, and a viewport. Nothing has to read an image or guess
+  which button "the second one in the third card" is.
+- **Batches, for any agent.** Write twenty notes in one pass; they queue in a
+  file in your repo. Anything that can run a CLI can drain the queue, tonight's
+  notes are still there tomorrow, and two agents can split them.
 
 The two compose. You pin the note; the agent fixes it, verifies in its own
 browser, and marks it done.
