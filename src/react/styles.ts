@@ -210,8 +210,9 @@ export const PANEL_CSS = `
   flex: 1;
   min-width: 0;
   font-size: 13px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .iso-iter-note-done .iso-iter-row p {
   color: var(--iso-faint);

@@ -409,7 +409,7 @@ export function IterationPanel({
                     data-iso-iterate
                     className="iso-iter-note-hit"
                     disabled={note.done}
-                    title={note.done ? undefined : 'Click to edit'}
+                    title={note.feedback}
                     onClick={() => beginEdit(note)}
                   >
                     <div className="iso-iter-row">

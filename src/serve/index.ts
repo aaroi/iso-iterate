@@ -179,30 +179,19 @@ function indexPage(origin: string, file: string): string {
   <header><span class="dot"></span><h1>iso-iterate</h1></header>
   <p class="sub">Serving the feedback loop on <code>${escapeHtml(origin)}</code>.</p>
 
-  <h2>Add the panel to your dev page</h2>
+  <h2>Script tag for your dev page</h2>
   <div class="card row">
     <pre>${escapeHtml(tag)}</pre>
     <button type="button" class="copy" data-c="${escapeHtml(tag)}"
       onclick="navigator.clipboard.writeText(this.dataset.c);this.textContent='copied';setTimeout(()=>this.textContent='copy',1200)">copy</button>
   </div>
-  <p class="note">One line, dev only. The panel mounts itself bottom right; no
-  bundler, no React install, no build step in the host.</p>
 
-  <h2>Or on a page you can't edit</h2>
+  <h2>Bookmarklet — drag to your bookmarks bar</h2>
   <a class="bm" href="${escapeHtml(mark)}">✎ Iteration</a>
-  <p class="note">Drag it to your bookmarks bar, then click it on the page you
-  want to review.</p>
-
-  <h2>Read the notes</h2>
-  <div class="card">
-    <pre>npx iso-iterate              <span class="c"># open notes</span>
-npx iso-iterate --done &lt;id&gt;  <span class="c"># mark addressed</span>
-npx iso-iterate --all        <span class="c"># include done</span></pre>
-  </div>
 
   <footer>
     notes → ${escapeHtml(file)}<br>
-    loopback origins only — a public page cannot post into this repo
+    loopback origins only
   </footer>
 </div>
 </body>
