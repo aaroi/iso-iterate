@@ -102,8 +102,8 @@ export const PANEL_CSS = `
   position: relative;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 9999px;
   background: var(--iso-raised);
   border: 1px solid var(--iso-line);
@@ -122,14 +122,14 @@ export const PANEL_CSS = `
   position: absolute;
   top: -4px;
   right: -4px;
-  min-width: 17px;
-  height: 17px;
+  min-width: 15px;
+  height: 15px;
   padding: 0 4px;
   border-radius: 9999px;
   display: grid;
   place-items: center;
   font-family: var(--iso-mono);
-  font-size: 10px;
+  font-size: 9.5px;
   line-height: 1;
   background: var(--iso-bg);
   border: 1px solid var(--iso-edge);
@@ -153,7 +153,7 @@ export const PANEL_CSS = `
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 10px 16px 0;
+  padding: 10px 12px 0;
   font-family: var(--iso-mono);
   font-size: 10.5px;
   letter-spacing: 0.04em;
@@ -176,10 +176,10 @@ export const PANEL_CSS = `
 .iso-iter-list {
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 6px 8px;
+  padding: 4px;
 }
 .iso-iter-head + .iso-iter-list {
-  padding-top: 4px;
+  padding-top: 2px;
 }
 .iso-iter-note {
   position: relative;
@@ -267,7 +267,7 @@ export const PANEL_CSS = `
 .iso-iter-compose {
   flex: none;
   border-top: 1px solid var(--iso-line);
-  padding: 10px 16px 9px;
+  padding: 10px 12px 9px;
 }
 .iso-iter-panel .iso-iter-compose:first-child {
   border-top: 0;
@@ -340,7 +340,6 @@ export const PANEL_CSS = `
   margin-top: 7px;
 }
 .iso-iter-pick {
-  margin-left: -6px;
   display: grid;
   place-items: center;
   width: 26px;
