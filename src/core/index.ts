@@ -44,8 +44,8 @@ export interface NodeLike {
 /**
  * Best-effort descriptor of a picked element for locating it in code. Walks
  * up the tree collecting `#id` (preferred) or `tag:nth-child(n)` segments up
- * to a shallow depth, stopping at `BODY` or the depth cap. Counterpart of the
- * cloud-lab picker, kept framework-free so it is unit-testable.
+ * to a shallow depth, stopping at `BODY` or the depth cap. Kept framework-free
+ * so it is unit-testable.
  */
 export function describeIterationElement(
   el: NodeLike,

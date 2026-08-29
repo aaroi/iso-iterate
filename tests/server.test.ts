@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { notesResponse, readNotes } from '../src/store';
+import * as server from '../src/server/index';
 import { serveNotesRequest } from '../src/server/index';
 
 const dirs: string[] = [];
@@ -87,3 +88,24 @@ describe('serveNotesRequest (fetch/gitworker adapter)', () => {
     expect(rows[0].element?.selector).toBe('button:first-child');
   });
 });
+
+describe('the ./server subpath surface', () => {
+  // The framework-agnostic story rests on `notesResponse` being reachable
+  // without importing vite. It was declared in the docs and used by the Next
+  // adapter while the subpath only re-exported `handleNotes`, so a consumer
+  // got "Export named 'notesResponse' not found" at module load.
+  it('re-exports every symbol a non-Vite host serves the endpoint with', () => {
+    for (const name of [
+      'notesResponse',
+      'serveNotesRequest',
+      'handleNotes',
+      'readNotes',
+      'writeNotes',
+      'ensureFileIgnored',
+      'NOTES_ENDPOINT',
+    ]) {
+      expect(server, name).toHaveProperty(name);
+    }
+  });
+});
+

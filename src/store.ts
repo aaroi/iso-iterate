@@ -76,8 +76,16 @@ export interface IterationRequest {
   url?: string;
   /** Collected request body for POST. */
   body?: unknown;
+  /**
+   * The response sink. `setStatus` is a method rather than a `statusCode`
+   * field on purpose: a field invites the caller to build a literal seeded
+   * from the real response (`{ statusCode: res.statusCode, ... }`), and
+   * writing to that literal then goes nowhere — every reply ships as whatever
+   * status the real response already carried. A method has to be wired to
+   * something live.
+   */
   res: {
-    statusCode: number;
+    setStatus(code: number): void;
     setHeader(key: string, value: string): void;
     end(body?: string): void;
   };
@@ -87,7 +95,7 @@ export interface IterationRequest {
  *  middleware, Next route handler, Bun serve, Vercel) can render it. */
 export interface NotesResponse {
   status: number;
-  /** Response headers object (frame works set them on their own res). */
+  /** Response headers object (frameworks set them on their own res). */
   headers: Record<string, string>;
   /** The JSON payload to send. */
   body: unknown;
@@ -103,7 +111,7 @@ export interface NotesRequest {
 /**
  * The transport-agnostic core of the notes endpoint. Reads/writes the local
  * file and returns a `{ status, headers, body }` the caller renders. Works
- * under Vite middleware, Next route handler, Bun.seerve, or Vercel.
+ * under Vite middleware, Next route handler, Bun.serve, or Vercel.
  */
 export function notesResponse(file: string, req: NotesRequest): NotesResponse {
   const method = req.method ?? '';
@@ -196,7 +204,7 @@ export function handleNotes(file: string, req: IterationRequest) {
     url: req.url,
     body: req.body,
   });
-  req.res.statusCode = status;
+  req.res.setStatus(status);
   for (const [k, v] of Object.entries(headers)) req.res.setHeader(k, v);
   req.res.end(JSON.stringify(body));
 }

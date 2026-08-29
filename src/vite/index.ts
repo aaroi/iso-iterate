@@ -16,7 +16,7 @@ import { resolve } from 'node:path';
 
 import type { Plugin, ResolvedConfig } from 'vite';
 
-import { ensureFileIgnored, handleNotes, NOTES_ENDPOINT } from '../store';
+import { ensureFileIgnored, notesResponse, NOTES_ENDPOINT } from '../store';
 import type { RouteGateOptions } from '../core/index';
 
 export interface IterationViteOptions {
@@ -29,17 +29,35 @@ export interface IterationViteOptions {
   key?: string;
 }
 
+/**
+ * What `iteration()` hands back.
+ *
+ * Only `name` is public, and that is deliberate. iso-iterate is consumed as a
+ * linked (`file:` / workspace) dependency, so TypeScript resolves the `vite`
+ * import from *this* package's `node_modules`, not the consumer's. Two vite
+ * type instances are nominally incompatible — rollup's plugin container
+ * carries a private `_pluginContextMap` — and a single unassignable entry
+ * poisons the overload resolution for the consumer's whole `plugins: []`
+ * array, so every other plugin in it errors too. Vite's own `Plugin` requires
+ * nothing but `name`, so a structural shape drops into any vite version's
+ * `PluginOption` while the hooks below stay checked against the real vite
+ * types inside this file.
+ */
+export interface IterationPlugin {
+  name: string;
+}
+
 const DEFAULT_FILE = '.iteration-feedback.json';
 const INJECTED = new WeakSet<ServerResponse>();
 const VIRTUAL_ID = 'virtual:iso-iterate-mount';
 const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
 
-export function iteration(options: IterationViteOptions = {}): Plugin {
+export function iteration(options: IterationViteOptions = {}): IterationPlugin {
   const file = options.file ?? DEFAULT_FILE;
   ensureFileIgnored(resolve(file));
   let isDev = false;
 
-  return {
+  const plugin: Plugin = {
     name: 'iso:iteration',
     enforce: 'pre',
     configResolved(config: ResolvedConfig) {
@@ -78,16 +96,13 @@ export function iteration(options: IterationViteOptions = {}): Plugin {
               body = undefined;
             }
           }
-          handleNotes(resolve(file), {
-            method,
-            url: req.url,
-            body,
-            res: {
-              statusCode: res.statusCode,
-              setHeader: (k, v) => res.setHeader(k, v),
-              end: (b) => res.end(b),
-            },
-          });
+          const { status, headers, body: payload } = notesResponse(
+            resolve(file),
+            { method, url: req.url, body },
+          );
+          res.statusCode = status;
+          for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
+          res.end(JSON.stringify(payload));
         });
       });
 
@@ -109,6 +124,8 @@ export function iteration(options: IterationViteOptions = {}): Plugin {
       });
     },
   };
+
+  return plugin;
 }
 
 /** Source for the virtual mount module: a static import Vite resolves. */

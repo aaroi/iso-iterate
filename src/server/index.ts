@@ -10,6 +10,7 @@
 export {
   ensureFileIgnored,
   handleNotes,
+  notesResponse,
   readNotes,
   writeNotes,
   NOTES_ENDPOINT,

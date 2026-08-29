@@ -22,18 +22,22 @@ afterEach(() => {
   dirs.length = 0;
 });
 
-/** A minimal capture of the handler's write into a Node-style res. */
+/** A minimal capture of the handler's write into a Node-style res. Models a
+ *  live response: the status the handler sets is the status we read back, so a
+ *  handler that never sets one fails here instead of passing on the default. */
 function capture() {
-  const statusCode = 200;
+  let statusCode = 0;
   let body = '';
   const res: IterationRequest['res'] = {
-    statusCode,
+    setStatus(code) {
+      statusCode = code;
+    },
     setHeader() {},
     end(b) {
       body = b ?? '';
     },
   };
-  return { res, status: () => res.statusCode, body: () => body };
+  return { res, status: () => statusCode, body: () => body };
 }
 
 function post(file: string, body: unknown) {

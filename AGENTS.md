@@ -44,6 +44,8 @@ written on.
 
 - `--done` uses the id *prefix* (unique is enough); ambiguous prefixes are
   rejected.
+- `route` is only a scope string. It is a URL path in a routed app, but nothing
+  parses it — a host may file notes under a design slug or component name.
 - Done notes hide in the panel by default (a "Show done" toggle reveals them),
   so feedback drains as you work.
 - There is no hosted endpoint and no database; everything is the local file.
@@ -52,5 +54,15 @@ written on.
 ## Publishing this package
 
 Not yet published to any registry; consumed as a local/git dependency today.
-The `bin` (`iso-iterate`) and the `react`/`vite`/`core`/`cli` subpath
-exports are stable shapes to build against (> `pnpm build` produces `dist/`).
+The `bin` (`iso-iterate`) and the `react`/`core`/`server`/`vite`/`cli` subpath
+exports are stable shapes to build against (`pnpm build` produces `dist/`).
+
+`iso-iterate/vite` is one adapter, not the boundary. `iso-iterate/server`
+holds the transport-free half — the file store and `notesResponse(file, req)
+=> { status, headers, body }` — so a Next route handler, `Bun.serve`, a Vercel
+function or plain `node:http` can serve the same endpoint against the same
+file. It imports neither React nor Vite. Because iso-iterate is consumed as a
+linked dependency, `iteration()` deliberately returns a structural
+`IterationPlugin` rather than vite's own `Plugin` type: two vite type
+instances are nominally incompatible, and one unassignable entry makes a
+consumer's whole `plugins: []` array fail to typecheck.

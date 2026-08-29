@@ -13,6 +13,7 @@ source.
 |---|---|---|
 | `IterationPanel` | React control (fixed bottom-right): Overall / Element notes, autosave, edit/delete, done toggle. Self-contained dark styles. | `iso-iterate/react` |
 | Vite plugin | Serves `/api/iteration/notes` from a local file and injects the panel (no host mount line). | `iso-iterate/vite` |
+| Server | The transport-free half: the file store plus `notesResponse(file, req)`, which returns `{ status, headers, body }` for any runtime to render. Imports no React and no Vite. | `iso-iterate/server` |
 | CLI | `iso-iterate` reads notes and marks them done. | `iso-iterate/cli` / `npx` |
 | Core | Note model, element descriptor, route allowlist, `localStorage` fallback. | `iso-iterate/core` |
 
@@ -49,6 +50,31 @@ Vite plugin; use `npx iso-iterate` to read reviewer notes."*
 
 Revertable: remove the plugin line and the dev dependency and the loop is gone;
 nothing else changed.
+
+## Hosting it outside Vite
+
+The Vite plugin is one adapter, not the product. The panel is a plain React
+component and the store is plain Node, so any dev runtime can host the loop by
+serving one endpoint from `iso-iterate/server`:
+
+```ts
+import { notesResponse, NOTES_ENDPOINT } from 'iso-iterate/server';
+
+// Node/Connect/Express — render the returned parts onto your response.
+const { status, headers, body } = notesResponse('.iteration-feedback.json', {
+  method: req.method,
+  url: req.url,
+  body: parsedJsonBody,
+});
+res.statusCode = status;
+for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
+res.end(JSON.stringify(body));
+```
+
+For a `Request`-based runtime (Next route handler, Bun.serve, a Vercel
+function) `serveNotesRequest(file, request)` does the parsing for you and
+returns the same three parts. Mount the panel yourself (below) pointed at
+whatever path you served it on, and the CLI reads the same file either way.
 
 ## Mounting on your own
 
