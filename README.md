@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="iso-iterate.png" width="160" alt="iso-iterate icon" />
+</p>
+
 # iso-iterate
 
 Click the thing you want changed instead of describing it.
@@ -79,8 +83,6 @@ The plugin serves the endpoint from the dev server and injects the panel.
 Remove the two lines and the loop is gone; nothing else changed.
 
 ## Using the panel
-
-It works like a chat with the agent:
 
 - Type, press **Enter**. The field clears instantly and keeps focus.
 - The crosshair pins an element. Hover highlights, click attaches.

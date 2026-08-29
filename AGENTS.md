@@ -7,9 +7,8 @@ agent reads them and marks them addressed.
 ## The loop
 
 1. The reviewer opens the **Iteration** control (the icon bottom-right of the
-   app) and writes notes like chat messages — Enter sends, and a note
-   optionally carries a pinned element (the crosshair in the composer: hover
-   to highlight, click to pin).
+   app) and writes notes. Enter sends, and a note optionally carries a pinned
+   element (the crosshair in the composer: hover to highlight, click to pin).
 2. Notes persist to a local gitignored JSON file (default
    `.iteration-feedback.json` in the working dir), served by the Vite plugin
    (`/api/iteration/notes`).
