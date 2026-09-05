@@ -39,15 +39,32 @@ function timeLabel(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-/** rgba components of a computed backgroundColor, or null when unparsable. */
+/**
+ * sRGB (0-255) components of a computed backgroundColor, or null when the
+ * browser can't parse it.
+ *
+ * A computed backgroundColor comes in any modern CSS color space — `#09090b`,
+ * `rgba(...)`, `lab(...)`, `oklch(...)`, `hsl(...)` or `color(display-p3 ...)`.
+ * Rather than hand-roll each grammar, hand the string back to the browser:
+ * paint a 1×1 canvas with it and read the sRGB pixel. The round-trip validates
+ * the value and pays for every color-space conversion, so the luminance test
+ * sees the color as the screen renders it.
+ */
 function parseColor(c: string): { r: number; g: number; b: number; a: number } | null {
-  const m = c.match(/rgba?\(([^)]+)\)/);
-  if (!m) return null;
-  const parts = m[1].split(/[,/]/).map((p) => Number.parseFloat(p.trim()));
-  const [r, g, b] = parts;
-  const a = parts.length > 3 ? parts[3] : 1;
-  if (![r, g, b].every(Number.isFinite)) return null;
-  return { r, g, b, a: Number.isFinite(a) ? a : 1 };
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = c;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+    return { r, g, b, a: a / 255 };
+  } catch {
+    return null;
+  }
 }
 
 /**
