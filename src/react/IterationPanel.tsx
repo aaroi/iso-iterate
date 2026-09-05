@@ -129,7 +129,6 @@ export function IterationPanel({
   const [hoverRect, setHoverRect] = useState<Rect | null>(null);
   const [text, setText] = useState('');
   const [notes, setNotes] = useState<IterationNote[] | null>(null);
-  const [showDone, setShowDone] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const rootRef = useRef<HTMLDivElement>(null);
@@ -149,10 +148,9 @@ export function IterationPanel({
 
   const visible = isRouteVisible(route, rule);
   const openCount = notes?.filter((n) => !n.done).length ?? 0;
-  const doneCount = notes?.filter((n) => n.done).length ?? 0;
   // Chat order: oldest at the top, newest right above the composer.
   const visibleNotes = (notes ?? [])
-    .filter((n) => showDone || !n.done)
+    .filter((n) => !n.done)
     .slice()
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
@@ -267,7 +265,7 @@ export function IterationPanel({
   useEffect(() => {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [notes, showDone, open]);
+  }, [notes, open]);
 
   // Focus the composer whenever the panel is in front of the reviewer.
   useEffect(() => {
@@ -412,18 +410,6 @@ export function IterationPanel({
 
       {open && !picking && (
         <div data-iso-iterate role="dialog" aria-label="Iteration notes" className="iso-iter-panel">
-          {doneCount > 0 && (
-            <div className="iso-iter-head">
-              <button
-                type="button"
-                data-iso-iterate
-                onClick={() => setShowDone((v) => !v)}
-              >
-                {showDone ? 'hide done' : `show done · ${doneCount}`}
-              </button>
-            </div>
-          )}
-
           {visibleNotes.length > 0 && (
             <ul ref={listRef} className="iso-iter-list">
               {visibleNotes.map((note) => (

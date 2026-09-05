@@ -149,26 +149,6 @@ export const PANEL_CSS = `
   overflow: hidden;
 }
 
-.iso-iter-head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 10px 12px 0;
-  font-family: var(--iso-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  color: var(--iso-faint);
-}
-.iso-iter-head button {
-  font-family: var(--iso-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  color: var(--iso-faint);
-}
-.iso-iter-head button:hover {
-  color: var(--iso-muted);
-}
-
 /* Chat order: oldest up top, newest right above the composer. The list
    scrolls internally, so sending never moves the composer under the cursor.
    A note is one row — text left, time right — and one hit target: click
@@ -177,9 +157,6 @@ export const PANEL_CSS = `
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 4px;
-}
-.iso-iter-head + .iso-iter-list {
-  padding-top: 2px;
 }
 .iso-iter-note {
   position: relative;
